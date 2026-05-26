@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "symbol_table.h"
+
+char current_file[100] = "main.c";
 
 extern int yylex();
 extern int line_num;
@@ -34,6 +37,7 @@ void yyerror(const char *s);
 %left '<' '>' LE GE
 %left '+' '-'
 %left '*' '/'
+%right '='
 
 %%
 
@@ -56,9 +60,28 @@ import_statement:
     ;
 
 function_definition:
-      type_specifier IDENTIFIER '(' parameter_list ')' compound_statement
+
+      type_specifier IDENTIFIER 
+      {
+
+          insert_symbol(
+              $2,
+              "int",
+              "function",
+              current_file,
+              line_num
+          );
+
+          enter_scope($2);
+      }
+      
+      '(' parameter_list ')'
+      
+      compound_statement
       {
           printf("Function defined: %s\n", $2);
+
+          exit_scope();
       }
     ;
 
@@ -70,6 +93,21 @@ parameter_list:
 
 parameter:
       type_specifier IDENTIFIER
+        {
+
+            if (
+                insert_symbol(
+                    $2,
+                    "int",
+                    "parameter",
+                    current_file,
+                    line_num
+                )
+            ) {
+
+                printf("Parameter detected: %s\n", $2);
+            }
+      }
     ;
 
 declaration:
@@ -83,13 +121,35 @@ variable_list:
 
 variable:
       IDENTIFIER
-      {
-          printf("Variable declared: %s\n", $1);
+      {   
+            if (
+                insert_symbol(
+                    $1,
+                    "int",
+                    "variable",
+                    current_file,
+                    line_num
+                )
+            ) {
+
+                printf("Variable declared: %s\n", $1);
+            }
       }
     |
       IDENTIFIER '=' expression
       {
-          printf("Variable initialized: %s\n", $1);
+            if (
+                insert_symbol(
+                    $1,
+                    "int",
+                    "variable",
+                    current_file,
+                    line_num
+                )
+            ) {
+
+                printf("Variable initialised: %s\n", $1);
+            }
       }
     ;
 
@@ -144,7 +204,25 @@ expression:
     | expression LE expression
     | expression GE expression
     | IDENTIFIER '=' expression
+        {
+            if (lookup_symbol($1) == NULL) {
+                printf(
+                    "Semantic Error: Undeclared identifier '%s' at line %d\n",
+                    $1,
+                    line_num
+                );
+            }
+        }
     | IDENTIFIER
+        {
+            if (lookup_symbol($1) == NULL) {
+                printf(
+                    "Semantic Error: Undeclared identifier '%s' at line %d\n",
+                    $1,
+                    line_num
+                );
+            }
+        }
     | INT_LITERAL
     | FLOAT_LITERAL
     | STRING_LITERAL
@@ -170,6 +248,8 @@ int main() {
     yyparse();
 
     printf("Compilation finished.\n");
+    
+    print_symbol_table();
 
     return 0;
 }

@@ -1,8 +1,8 @@
 all:
 	bison -d parser.y
 	flex lexer.l
-	gcc lex.yy.c parser.tab.c -o compiler
-
+	gcc lex.yy.c parser.tab.c symbol_table.c -o compiler
+	
 run:
 	./compiler < test.c
 
