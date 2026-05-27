@@ -1,10 +1,77 @@
-all:
-	bison -d parser.y
-	flex lexer.l
-	gcc lex.yy.c parser.tab.c symbol_table.c -o compiler
-	
+# =========================================================
+# Mini-C Compiler Makefile
+# =========================================================
+
+CC = gcc
+
+BISON = bison
+FLEX = flex
+
+CFLAGS = -Wall -Wextra
+
+TARGET = compiler.exe
+
+# =========================================================
+# SOURCE FILES
+# =========================================================
+
+LEXER = compiler/1_lexer/lexer.l
+PARSER = compiler/2_parser/parser.y
+MAIN = compiler/main.c
+
+# =========================================================
+# GENERATED FILES
+# =========================================================
+
+LEX_C = lex.yy.c
+
+PARSER_C = parser.tab.c
+PARSER_H = parser.tab.h
+
+# =========================================================
+# BUILD RULE
+# =========================================================
+
+all: $(TARGET)
+
+$(TARGET): $(LEX_C) $(PARSER_C) $(MAIN)
+	$(CC) $(CFLAGS) $(LEX_C) $(PARSER_C) $(MAIN) -o $(TARGET)
+
+# =========================================================
+# BISON
+# =========================================================
+
+$(PARSER_C) $(PARSER_H): $(PARSER)
+	$(BISON) -d $(PARSER)
+
+# =========================================================
+# FLEX
+# =========================================================
+
+$(LEX_C): $(LEXER) $(PARSER_H)
+	$(FLEX) $(LEXER)
+
+# =========================================================
+# RUN TEST
+# Usage:
+# make run FILE=test_basic.c
+# =========================================================
+
 run:
-	./compiler < test.c
+	./$(TARGET) $(FILE)
+
+# =========================================================
+# CLEAN
+# =========================================================
 
 clean:
-	rm -f lex.yy.c parser.tab.c parser.tab.h compiler
+	rm -f $(TARGET)
+	rm -f $(LEX_C)
+	rm -f $(PARSER_C)
+	rm -f $(PARSER_H)
+
+# =========================================================
+# REBUILD
+# =========================================================
+
+rebuild: clean all
