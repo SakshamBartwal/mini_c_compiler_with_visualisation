@@ -75,6 +75,12 @@ void print_ast(ASTNode *node, int level)
         case NODE_INT_LITERAL:        printf("INT_LITERAL"); break;
         case NODE_FLOAT_LITERAL:      printf("FLOAT_LITERAL"); break;
         case NODE_STRING_LITERAL:     printf("STRING_LITERAL"); break;
+        case NODE_IF:                 printf("IF"); break;
+        case NODE_WHILE:              printf("WHILE"); break;
+        case NODE_FOR:                printf("FOR"); break;
+        case NODE_RETURN:             printf("RETURN"); break;
+        case NODE_BREAK:              printf("BREAK"); break;
+        case NODE_CONTINUE:           printf("CONTINUE"); break;    
         default:                      printf("UNKNOWN");
     }
 

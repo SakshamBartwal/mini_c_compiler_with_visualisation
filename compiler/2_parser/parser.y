@@ -50,6 +50,11 @@ void yyerror(const char *s);
 %type <node> expression_statement statement compound_statement statement_list
 %type <node> program external_declaration
 %type <node> function_definition
+%type <node> selection_statement
+%type <node> iteration_statement
+%type <node> jump_statement
+%type <node> for_init_statement
+%type <node> optional_expression
 
 %%
 
@@ -194,9 +199,9 @@ statement_list:
 statement:
       declaration           { $$ = $1; }
     | expression_statement  { $$ = $1; }
-    | selection_statement   { $$ = NULL; }
-    | iteration_statement   { $$ = NULL; }
-    | jump_statement        { $$ = NULL; }
+    | selection_statement   { $$ = $1; }
+    | iteration_statement   { $$ = $1; }
+    | jump_statement        { $$ = $1; }
     | compound_statement    { $$ = $1; }
     ;
 
@@ -207,8 +212,19 @@ expression_statement:
 
 selection_statement:
       IF '(' expression ')' statement %prec LOWER_THAN_ELSE
+      {
+          $$ = create_node(NODE_IF, "if");
+          $$->left = $3;   /* Condition expression */
+          $$->right = $5;  /* Body statement */
+      }
     | IF '(' expression ')' statement ELSE statement
-    | SWITCH '(' expression ')' '{' case_list '}'
+      {
+          $$ = create_node(NODE_IF, "if_else");
+          $$->left = $3;   /* Condition expression */
+          $$->right = $5;  /* Then block statement */
+          $$->third = $7;  /* Else block statement */
+      }
+    | SWITCH '(' expression ')' '{' case_list '}' { $$ = NULL; }
     ;
 
 case_list:
@@ -229,25 +245,55 @@ constant_expression:
 
 iteration_statement:
       WHILE '(' expression ')' statement
-    | DO statement WHILE '(' expression ')' ';'
+      {
+          $$ = create_node(NODE_WHILE, "while");
+          $$->left = $3;   /* Condition expression */
+          $$->right = $5;  /* Loop body statement */
+      }
+    | DO statement WHILE '(' expression ')' ';' { $$ = NULL; }
     | FOR '(' for_init_statement expression_statement optional_expression ')' statement
+      {
+          $$ = create_node(NODE_FOR, "for");
+          $$->left = $3;   /* Initialization statement */
+          $$->right = $4;  /* Condition statement */
+          
+          /* Append the update expression step ($5) directly to the tail
+             of the loop body statement block ($7) using your flat append system */
+          if($5 != NULL) {
+              append_node($7, $5);
+          }
+          $$->third = $7;  /* Unified loop body root */
+      }
     ;
 
 for_init_statement:
-      declaration
-    | expression_statement
+      declaration           { $$ = $1; }
+    | expression_statement  { $$ = $1; }
     ;
 
 optional_expression:
-      expression
-    |
+      expression            { $$ = $1; }
+    |                       { $$ = NULL; } /* Handle empty increment case safely */
     ;
 
 jump_statement:
       RETURN expression ';'
+      {
+          $$ = create_node(NODE_RETURN, "return");
+          $$->left = $2;
+      }
     | RETURN ';'
+      {
+          $$ = create_node(NODE_RETURN, "return");
+      }
     | BREAK ';'
+      {
+          $$ = create_node(NODE_BREAK, "break");
+      }
     | CONTINUE ';'
+      {
+          $$ = create_node(NODE_CONTINUE, "continue");
+      }
     ;
 
 /* --- Core Expressions & Math Operators --- */
@@ -295,16 +341,46 @@ logical_and_expression:
     ;
 
 equality_expression:
-      equality_expression EQ relational_expression { $$ = NULL; }
-    | equality_expression NEQ relational_expression { $$ = NULL; }
+      equality_expression EQ relational_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "==");
+          $$->left = $1;
+          $$->right = $3;
+      }
+    | equality_expression NEQ relational_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "!=");
+          $$->left = $1;
+          $$->right = $3;
+      }
     | relational_expression { $$ = $1; }
     ;
 
 relational_expression:
-      relational_expression '<' additive_expression { $$ = NULL; }
-    | relational_expression '>' additive_expression { $$ = NULL; }
-    | relational_expression LE additive_expression  { $$ = NULL; }
-    | relational_expression GE additive_expression  { $$ = NULL; }
+      relational_expression '<' additive_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "<");
+          $$->left = $1;
+          $$->right = $3;
+      }
+    | relational_expression '>' additive_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, ">");
+          $$->left = $1;
+          $$->right = $3;
+      }
+    | relational_expression LE additive_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "<=");
+          $$->left = $1;
+          $$->right = $3;
+      }
+    | relational_expression GE additive_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, ">=");
+          $$->left = $1;
+          $$->right = $3;
+      }
     | additive_expression { $$ = $1; }
     ;
 

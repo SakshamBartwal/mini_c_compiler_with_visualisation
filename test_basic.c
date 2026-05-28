@@ -1,15 +1,20 @@
-int main()
-{
-    int a = 5;
-    int b = 10;
-;;;;
-    x = a + b * 2;
-;
-    {
-        int c = 20;
+int main() {
+    int a = 1;
+    int b = 2;
 
-        y = a + b + c;
+    for (int i = 0; i < 10; i = i + 1) {
+        if (a < b) {
+            int temp = a;
+            a = b;
+            b = temp;
+        } else {
+            while (a > 0) {
+                a = a - 1;
+                if (a == 5) {
+                    break;
+                }
+            }
+        }
     }
-
-    z = x + y;
+    return 0;
 }

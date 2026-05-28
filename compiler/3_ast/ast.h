@@ -14,7 +14,14 @@ typedef enum
     NODE_IDENTIFIER,
     NODE_INT_LITERAL,
     NODE_FLOAT_LITERAL,
-    NODE_STRING_LITERAL
+    NODE_STRING_LITERAL,
+
+    NODE_IF,
+    NODE_WHILE,
+    NODE_FOR,
+    NODE_RETURN,
+    NODE_BREAK,
+    NODE_CONTINUE
 } NodeType;
 
 typedef struct ASTNode
