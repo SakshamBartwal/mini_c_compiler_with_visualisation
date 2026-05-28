@@ -611,10 +611,10 @@ static const yytype_int16 yyrline[] =
      182,   183,   187,   188,   189,   190,   194,   199,   208,   213,
      218,   223,   228,   233,   240,   245,   252,   257,   264,   269,
      276,   281,   286,   293,   298,   303,   308,   313,   320,   328,
-     336,   343,   351,   359,   367,   374,   379,   384,   389,   394,
-     399,   404,   409,   414,   421,   426,   431,   436,   441,   448,
-     453,   458,   463,   468,   475,   476,   480,   481,   485,   486,
-     487,   488,   489,   490,   491,   492,   493
+     336,   343,   351,   359,   367,   374,   379,   386,   393,   400,
+     407,   414,   421,   428,   437,   442,   447,   452,   457,   464,
+     469,   474,   479,   484,   491,   492,   496,   497,   501,   502,
+     503,   504,   505,   506,   507,   508,   509
 };
 #endif
 
@@ -1620,149 +1620,165 @@ yyreduce:
   case 86: /* unary_expression: INC unary_expression  */
 #line 380 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
+          (yyval.node) = create_node(NODE_UNARY_OP, "++");
+
+          (yyval.node)->left = (yyvsp[0].node);
       }
-#line 1626 "parser.tab.c"
+#line 1628 "parser.tab.c"
     break;
 
   case 87: /* unary_expression: DEC unary_expression  */
-#line 385 "compiler/2_parser/parser.y"
+#line 387 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
+          (yyval.node) = create_node(NODE_UNARY_OP, "--");
+
+          (yyval.node)->left = (yyvsp[0].node);
       }
-#line 1634 "parser.tab.c"
+#line 1638 "parser.tab.c"
     break;
 
   case 88: /* unary_expression: '&' unary_expression  */
-#line 390 "compiler/2_parser/parser.y"
+#line 394 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
+          (yyval.node) = create_node(NODE_UNARY_OP, "&");
+
+          (yyval.node)->left = (yyvsp[0].node);
       }
-#line 1642 "parser.tab.c"
+#line 1648 "parser.tab.c"
     break;
 
   case 89: /* unary_expression: '*' unary_expression  */
-#line 395 "compiler/2_parser/parser.y"
+#line 401 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
-      }
-#line 1650 "parser.tab.c"
-    break;
+          (yyval.node) = create_node(NODE_UNARY_OP, "*");
 
-  case 90: /* unary_expression: '-' unary_expression  */
-#line 400 "compiler/2_parser/parser.y"
-      {
-          (yyval.node) = NULL;
+          (yyval.node)->left = (yyvsp[0].node);
       }
 #line 1658 "parser.tab.c"
     break;
 
-  case 91: /* unary_expression: '!' unary_expression  */
-#line 405 "compiler/2_parser/parser.y"
+  case 90: /* unary_expression: '-' unary_expression  */
+#line 408 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
+          (yyval.node) = create_node(NODE_UNARY_OP, "-");
+
+          (yyval.node)->left = (yyvsp[0].node);
       }
-#line 1666 "parser.tab.c"
+#line 1668 "parser.tab.c"
+    break;
+
+  case 91: /* unary_expression: '!' unary_expression  */
+#line 415 "compiler/2_parser/parser.y"
+      {
+          (yyval.node) = create_node(NODE_UNARY_OP, "!");
+
+          (yyval.node)->left = (yyvsp[0].node);
+      }
+#line 1678 "parser.tab.c"
     break;
 
   case 92: /* unary_expression: SIZEOF unary_expression  */
-#line 410 "compiler/2_parser/parser.y"
+#line 422 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
+          (yyval.node) = create_node(NODE_UNARY_OP, "sizeof");
+
+          (yyval.node)->left = (yyvsp[0].node);
       }
-#line 1674 "parser.tab.c"
+#line 1688 "parser.tab.c"
     break;
 
   case 93: /* unary_expression: '(' type_specifier ')' unary_expression  */
-#line 415 "compiler/2_parser/parser.y"
+#line 429 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
-      }
-#line 1682 "parser.tab.c"
-    break;
+          (yyval.node) = create_node(NODE_UNARY_OP, "cast");
 
-  case 94: /* postfix_expression: primary_expression  */
-#line 422 "compiler/2_parser/parser.y"
-      {
-          (yyval.node) = (yyvsp[0].node);
-      }
-#line 1690 "parser.tab.c"
-    break;
-
-  case 95: /* postfix_expression: postfix_expression '[' expression ']'  */
-#line 427 "compiler/2_parser/parser.y"
-      {
-          (yyval.node) = NULL;
+          (yyval.node)->left = (yyvsp[0].node);
       }
 #line 1698 "parser.tab.c"
     break;
 
-  case 96: /* postfix_expression: postfix_expression '(' argument_list_opt ')'  */
-#line 432 "compiler/2_parser/parser.y"
+  case 94: /* postfix_expression: primary_expression  */
+#line 438 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = NULL;
+          (yyval.node) = (yyvsp[0].node);
       }
 #line 1706 "parser.tab.c"
     break;
 
-  case 97: /* postfix_expression: postfix_expression INC  */
-#line 437 "compiler/2_parser/parser.y"
+  case 95: /* postfix_expression: postfix_expression '[' expression ']'  */
+#line 443 "compiler/2_parser/parser.y"
       {
           (yyval.node) = NULL;
       }
 #line 1714 "parser.tab.c"
     break;
 
-  case 98: /* postfix_expression: postfix_expression DEC  */
-#line 442 "compiler/2_parser/parser.y"
+  case 96: /* postfix_expression: postfix_expression '(' argument_list_opt ')'  */
+#line 448 "compiler/2_parser/parser.y"
       {
           (yyval.node) = NULL;
       }
 #line 1722 "parser.tab.c"
     break;
 
-  case 99: /* primary_expression: IDENTIFIER  */
-#line 449 "compiler/2_parser/parser.y"
+  case 97: /* postfix_expression: postfix_expression INC  */
+#line 453 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = create_node(NODE_IDENTIFIER, (yyvsp[0].sval));
+          (yyval.node) = NULL;
       }
 #line 1730 "parser.tab.c"
     break;
 
-  case 100: /* primary_expression: STRING_LITERAL  */
-#line 454 "compiler/2_parser/parser.y"
+  case 98: /* postfix_expression: postfix_expression DEC  */
+#line 458 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = create_node(NODE_STRING_LITERAL, (yyvsp[0].sval));
+          (yyval.node) = NULL;
       }
 #line 1738 "parser.tab.c"
     break;
 
-  case 101: /* primary_expression: INT_LITERAL  */
-#line 459 "compiler/2_parser/parser.y"
+  case 99: /* primary_expression: IDENTIFIER  */
+#line 465 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = create_node(NODE_INT_LITERAL, (yyvsp[0].sval));
+          (yyval.node) = create_node(NODE_IDENTIFIER, (yyvsp[0].sval));
       }
 #line 1746 "parser.tab.c"
     break;
 
-  case 102: /* primary_expression: FLOAT_LITERAL  */
-#line 464 "compiler/2_parser/parser.y"
+  case 100: /* primary_expression: STRING_LITERAL  */
+#line 470 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = create_node(NODE_FLOAT_LITERAL, (yyvsp[0].sval));
+          (yyval.node) = create_node(NODE_STRING_LITERAL, (yyvsp[0].sval));
       }
 #line 1754 "parser.tab.c"
     break;
 
-  case 103: /* primary_expression: '(' expression ')'  */
-#line 469 "compiler/2_parser/parser.y"
+  case 101: /* primary_expression: INT_LITERAL  */
+#line 475 "compiler/2_parser/parser.y"
       {
-          (yyval.node) = (yyvsp[-1].node);
+          (yyval.node) = create_node(NODE_INT_LITERAL, (yyvsp[0].sval));
       }
 #line 1762 "parser.tab.c"
     break;
 
+  case 102: /* primary_expression: FLOAT_LITERAL  */
+#line 480 "compiler/2_parser/parser.y"
+      {
+          (yyval.node) = create_node(NODE_FLOAT_LITERAL, (yyvsp[0].sval));
+      }
+#line 1770 "parser.tab.c"
+    break;
 
-#line 1766 "parser.tab.c"
+  case 103: /* primary_expression: '(' expression ')'  */
+#line 485 "compiler/2_parser/parser.y"
+      {
+          (yyval.node) = (yyvsp[-1].node);
+      }
+#line 1778 "parser.tab.c"
+    break;
+
+
+#line 1782 "parser.tab.c"
 
       default: break;
     }
@@ -1955,7 +1971,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 496 "compiler/2_parser/parser.y"
+#line 512 "compiler/2_parser/parser.y"
 
 
 void yyerror(const char *s)

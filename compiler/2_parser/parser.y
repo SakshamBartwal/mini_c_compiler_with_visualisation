@@ -378,42 +378,58 @@ unary_expression:
 
     | INC unary_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "++");
+
+          $$->left = $2;
       }
 
     | DEC unary_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "--");
+
+          $$->left = $2;
       }
 
     | '&' unary_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "&");
+
+          $$->left = $2;
       }
 
     | '*' unary_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "*");
+
+          $$->left = $2;
       }
 
     | '-' unary_expression %prec UMINUS
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "-");
+
+          $$->left = $2;
       }
 
     | '!' unary_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "!");
+
+          $$->left = $2;
       }
 
     | SIZEOF unary_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "sizeof");
+
+          $$->left = $2;
       }
 
     | '(' type_specifier ')' unary_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_UNARY_OP, "cast");
+
+          $$->left = $4;
       }
     ;
 

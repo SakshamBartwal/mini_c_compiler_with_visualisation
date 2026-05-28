@@ -1,3 +1,3 @@
 int main() {
-    a + b * c - d / e + (f * g);
+    *(&x);
 }
