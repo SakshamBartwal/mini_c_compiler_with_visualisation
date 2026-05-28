@@ -1,16 +1,15 @@
-/* =========================================================
-   main.c
-   Mini-C Compiler Driver
-   ========================================================= */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "3_ast/ast.h"
 
 extern FILE *yyin;
 extern int yyparse();
 
 extern int line_num;
+
+
 
 char current_file[100];
 
@@ -41,12 +40,21 @@ int main(int argc, char *argv[]) {
     int result = yyparse();
 
     if(result == 0) {
+
         printf("\n=====================================\n");
         printf(" Parsing Successful\n");
         printf(" No syntax errors found\n");
         printf("=====================================\n");
+
+        if(root != NULL)
+        {
+            printf("\n=========== AST ===========\n\n");
+
+            print_ast(root, 0);
+        }
     }
     else {
+
         printf("\n=====================================\n");
         printf(" Parsing Failed\n");
         printf("=====================================\n");

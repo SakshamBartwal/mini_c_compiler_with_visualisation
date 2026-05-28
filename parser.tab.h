@@ -102,11 +102,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 14 "compiler/2_parser/parser.y"
+#line 18 "compiler/2_parser/parser.y"
 
-    int ival;
-    float fval;
     char* sval;
+
+    ASTNode *node;
 
 #line 112 "parser.tab.h"
 

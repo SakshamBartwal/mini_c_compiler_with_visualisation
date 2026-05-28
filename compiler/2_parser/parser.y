@@ -3,18 +3,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compiler/3_ast/ast.h"
+
 extern char current_file[100];
 
 extern int yylex();
 extern int line_num;
 
 void yyerror(const char *s);
+
+
 %}
 
 %union {
-    int ival;
-    float fval;
     char* sval;
+
+    ASTNode *node;
 }
 
 %token IMPORT
@@ -37,18 +41,29 @@ void yyerror(const char *s);
 
 %token ADD_ASSIGN SUB_ASSIGN MUL_ASSIGN DIV_ASSIGN
 
-%token <ival> INT_LITERAL
-%token <fval> FLOAT_LITERAL
+%token <sval> INT_LITERAL
+%token <sval> FLOAT_LITERAL
 %token <sval> STRING_LITERAL
 %token <sval> IDENTIFIER
-
-
 
 %right '='
 %right UMINUS
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
+
+%type <node> expression
+%type <node> assignment_expression
+%type <node> conditional_expression
+%type <node> logical_or_expression
+%type <node> logical_and_expression
+%type <node> equality_expression
+%type <node> relational_expression
+%type <node> additive_expression
+%type <node> multiplicative_expression
+%type <node> unary_expression
+%type <node> postfix_expression
+%type <node> primary_expression
 
 %%
 
@@ -177,86 +192,283 @@ jump_statement:
 
 expression:
       expression ',' assignment_expression
+      {
+          $$ = NULL;
+      }
+
     | assignment_expression
+      {
+          $$ = $1;
+
+          root = $$;
+      }
     ;
 
 assignment_expression:
       unary_expression '=' assignment_expression
+      {
+          $$ = NULL;
+      }
+
     | unary_expression ADD_ASSIGN assignment_expression
+      {
+          $$ = NULL;
+      }
+
     | unary_expression SUB_ASSIGN assignment_expression
+      {
+          $$ = NULL;
+      }
+
     | unary_expression MUL_ASSIGN assignment_expression
+      {
+          $$ = NULL;
+      }
+
     | unary_expression DIV_ASSIGN assignment_expression
+      {
+          $$ = NULL;
+      }
+
     | conditional_expression
+      {
+          $$ = $1;
+      }
     ;
 
 conditional_expression:
       logical_or_expression
+      {
+          $$ = $1;
+      }
+
     | logical_or_expression '?' expression ':' conditional_expression
+      {
+          $$ = NULL;
+      }
     ;
 
 logical_or_expression:
       logical_or_expression OR logical_and_expression
+      {
+          $$ = NULL;
+      }
+
     | logical_and_expression
+      {
+          $$ = $1;
+      }
     ;
 
 logical_and_expression:
       logical_and_expression AND equality_expression
+      {
+          $$ = NULL;
+      }
+
     | equality_expression
+      {
+          $$ = $1;
+      }
     ;
 
 equality_expression:
       equality_expression EQ relational_expression
+      {
+          $$ = NULL;
+      }
+
     | equality_expression NEQ relational_expression
+      {
+          $$ = NULL;
+      }
+
     | relational_expression
+      {
+          $$ = $1;
+      }
     ;
 
 relational_expression:
       relational_expression '<' additive_expression
+      {
+          $$ = NULL;
+      }
+
     | relational_expression '>' additive_expression
+      {
+          $$ = NULL;
+      }
+
     | relational_expression LE additive_expression
+      {
+          $$ = NULL;
+      }
+
     | relational_expression GE additive_expression
+      {
+          $$ = NULL;
+      }
+
     | additive_expression
+      {
+          $$ = $1;
+      }
     ;
 
 additive_expression:
       additive_expression '+' multiplicative_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "+");
+
+          $$->left = $1;
+          $$->right = $3;
+      }
+
     | additive_expression '-' multiplicative_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "-");
+
+          $$->left = $1;
+          $$->right = $3;
+      }
+
     | multiplicative_expression
+      {
+          $$ = $1;
+      }
     ;
 
 multiplicative_expression:
       multiplicative_expression '*' unary_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "*");
+
+          $$->left = $1;
+          $$->right = $3;
+      }
+
     | multiplicative_expression '/' unary_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "/");
+
+          $$->left = $1;
+          $$->right = $3;
+      }
+
     | multiplicative_expression '%' unary_expression
+      {
+          $$ = create_node(NODE_BINARY_OP, "%");
+
+          $$->left = $1;
+          $$->right = $3;
+      }
+
     | unary_expression
+      {
+          $$ = $1;
+      }
     ;
 
 unary_expression:
       postfix_expression
+      {
+          $$ = $1;
+      }
+
     | INC unary_expression
+      {
+          $$ = NULL;
+      }
+
     | DEC unary_expression
+      {
+          $$ = NULL;
+      }
+
     | '&' unary_expression
+      {
+          $$ = NULL;
+      }
+
     | '*' unary_expression
+      {
+          $$ = NULL;
+      }
+
     | '-' unary_expression %prec UMINUS
+      {
+          $$ = NULL;
+      }
+
     | '!' unary_expression
+      {
+          $$ = NULL;
+      }
+
     | SIZEOF unary_expression
+      {
+          $$ = NULL;
+      }
+
     | '(' type_specifier ')' unary_expression
+      {
+          $$ = NULL;
+      }
     ;
 
 postfix_expression:
       primary_expression
+      {
+          $$ = $1;
+      }
+
     | postfix_expression '[' expression ']'
+      {
+          $$ = NULL;
+      }
+
     | postfix_expression '(' argument_list_opt ')'
+      {
+          $$ = NULL;
+      }
+
     | postfix_expression INC
+      {
+          $$ = NULL;
+      }
+
     | postfix_expression DEC
+      {
+          $$ = NULL;
+      }
     ;
 
 primary_expression:
       IDENTIFIER
+      {
+          $$ = create_node(NODE_IDENTIFIER, $1);
+      }
+
     | STRING_LITERAL
+      {
+          $$ = create_node(NODE_STRING_LITERAL, $1);
+      }
+
     | INT_LITERAL
+      {
+          $$ = create_node(NODE_INT_LITERAL, $1);
+      }
+
     | FLOAT_LITERAL
+      {
+          $$ = create_node(NODE_FLOAT_LITERAL, $1);
+      }
+
     | '(' expression ')'
+      {
+          $$ = $2;
+      }
     ;
 
 argument_list_opt:
@@ -283,6 +495,12 @@ type_specifier:
 
 %%
 
-void yyerror(const char *s) {
-    fprintf(stderr, "Parser Error: %s at line %d\n", s, line_num);
+void yyerror(const char *s)
+{
+    fprintf(
+        stderr,
+        "Parser Error: %s at line %d\n",
+        s,
+        line_num
+    );
 }

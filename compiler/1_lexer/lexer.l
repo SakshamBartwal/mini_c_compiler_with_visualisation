@@ -1,5 +1,7 @@
 %{
+#include "compiler/3_ast/ast.h"
 #include "parser.tab.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,12 +97,12 @@ STRING         \"([^\\\"]|\\.)*\"
                   /* FLOAT must come BEFORE INT */
 
 {FLOATNUM}             {
-                            yylval.fval = atof(yytext);
+                            yylval.sval = strdup(yytext);
                             return FLOAT_LITERAL;
                         }
 
 {NUMBER}               {
-                            yylval.ival = atoi(yytext);
+                            yylval.sval = strdup(yytext);
                             return INT_LITERAL;
                         }
 

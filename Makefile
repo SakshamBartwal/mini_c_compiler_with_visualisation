@@ -1,77 +1,32 @@
-# =========================================================
-# Mini-C Compiler Makefile
-# =========================================================
-
 CC = gcc
+CFLAGS = -Wall -Wextra
 
 BISON = bison
 FLEX = flex
 
-CFLAGS = -Wall -Wextra
-
 TARGET = compiler.exe
-
-# =========================================================
-# SOURCE FILES
-# =========================================================
 
 LEXER = compiler/1_lexer/lexer.l
 PARSER = compiler/2_parser/parser.y
+
+AST = compiler/3_ast/ast.c
 MAIN = compiler/main.c
-
-# =========================================================
-# GENERATED FILES
-# =========================================================
-
-LEX_C = lex.yy.c
-
-PARSER_C = parser.tab.c
-PARSER_H = parser.tab.h
-
-# =========================================================
-# BUILD RULE
-# =========================================================
 
 all: $(TARGET)
 
-$(TARGET): $(LEX_C) $(PARSER_C) $(MAIN)
-	$(CC) $(CFLAGS) $(LEX_C) $(PARSER_C) $(MAIN) -o $(TARGET)
+$(TARGET): parser.tab.c lex.yy.c
+	$(CC) $(CFLAGS) parser.tab.c lex.yy.c $(AST) $(MAIN) -o $(TARGET)
 
-# =========================================================
-# BISON
-# =========================================================
-
-$(PARSER_C) $(PARSER_H): $(PARSER)
+parser.tab.c parser.tab.h: $(PARSER)
 	$(BISON) -d $(PARSER)
 
-# =========================================================
-# FLEX
-# =========================================================
-
-$(LEX_C): $(LEXER) $(PARSER_H)
+lex.yy.c: $(LEXER) parser.tab.h
 	$(FLEX) $(LEXER)
-
-# =========================================================
-# RUN TEST
-# Usage:
-# make run FILE=test_basic.c
-# =========================================================
 
 run:
 	./$(TARGET) $(FILE)
 
-# =========================================================
-# CLEAN
-# =========================================================
-
 clean:
-	rm -f $(TARGET)
-	rm -f $(LEX_C)
-	rm -f $(PARSER_C)
-	rm -f $(PARSER_H)
-
-# =========================================================
-# REBUILD
-# =========================================================
+	rm -f $(TARGET) lex.yy.c parser.tab.c parser.tab.h
 
 rebuild: clean all
