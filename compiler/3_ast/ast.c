@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "ast.h"
 
 static int node_counter = 0;
-
 ASTNode *root = NULL;
 
 ASTNode *create_node(NodeType type, char *value)
@@ -19,7 +17,6 @@ ASTNode *create_node(NodeType type, char *value)
     }
 
     node->id = ++node_counter;
-
     node->type = type;
 
     if(value)
@@ -40,17 +37,19 @@ ASTNode *append_node(ASTNode *list, ASTNode *node)
     if(list == NULL)
         return node;
 
-    ASTNode *temp = list->left;
+    if(node == NULL)
+        return list;
 
-    while(temp->next)
+    ASTNode *temp = list;
+
+    /* Safely travel down the horizontal line of siblings via .next only */
+    while(temp->next != NULL)
     {
         temp = temp->next;
     }
 
     temp->next = node;
-
     return list;
-
 }
 
 void print_ast(ASTNode *node, int level)
@@ -65,48 +64,18 @@ void print_ast(ASTNode *node, int level)
 
     switch(node->type)
     {
-        case NODE_PROGRAM:
-            printf("PROGRAM");
-            break;
-
-        case NODE_BINARY_OP:
-            printf("BINARY_OP");
-            break;
-
-        case NODE_UNARY_OP:
-            printf("UNARY_OP");
-            break;
-
-        case NODE_DECLARATION:
-            printf("DECLARATION");
-            break;
-
-        case NODE_DECLARATOR_LIST:
-            printf("DECLARATOR_LIST");
-            break;
-
-        case NODE_ASSIGNMENT:
-            printf("ASSIGNMENT");
-            break;
-
-        case NODE_IDENTIFIER:
-            printf("IDENTIFIER");
-            break;
-
-        case NODE_INT_LITERAL:
-            printf("INT_LITERAL");
-            break;
-
-        case NODE_FLOAT_LITERAL:
-            printf("FLOAT_LITERAL");
-            break;
-
-        case NODE_STRING_LITERAL:
-            printf("STRING_LITERAL");
-            break;
-
-        default:
-            printf("UNKNOWN");
+        case NODE_PROGRAM:            printf("PROGRAM"); break;
+        case NODE_FUNCTION_DEF:       printf("FUNCTION_DEF"); break;
+        case NODE_COMPOUND_STATEMENT: printf("COMPOUND_STATEMENT"); break;
+        case NODE_BINARY_OP:          printf("BINARY_OP"); break;
+        case NODE_UNARY_OP:           printf("UNARY_OP"); break;
+        case NODE_DECLARATION:        printf("DECLARATION"); break;
+        case NODE_ASSIGNMENT:         printf("ASSIGNMENT"); break;
+        case NODE_IDENTIFIER:         printf("IDENTIFIER"); break;
+        case NODE_INT_LITERAL:        printf("INT_LITERAL"); break;
+        case NODE_FLOAT_LITERAL:      printf("FLOAT_LITERAL"); break;
+        case NODE_STRING_LITERAL:     printf("STRING_LITERAL"); break;
+        default:                      printf("UNKNOWN");
     }
 
     if(node->value)
@@ -114,18 +83,11 @@ void print_ast(ASTNode *node, int level)
 
     printf("\n");
 
-    if(node->left)
-        print_ast(node->left, level + 1);
+    /* Print internal children blocks deeper down the hierarchy */
+    print_ast(node->left, level + 1);
+    print_ast(node->right, level + 1);
+    print_ast(node->third, level + 1);
 
-    if(node->right)
-        print_ast(node->right, level + 1);
-
-    if(node->third)
-        print_ast(node->third, level + 1);
-
-    if(node->next)
-        print_ast(node->next, level);
-
-
+    /* Print consecutive structural siblings at the same layout indentation level */
+    print_ast(node->next, level);
 }
-
