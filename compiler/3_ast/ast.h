@@ -8,6 +8,10 @@ typedef enum
     NODE_BINARY_OP,
     NODE_UNARY_OP,
 
+    NODE_DECLARATION,
+    NODE_DECLARATOR_LIST,
+    NODE_ASSIGNMENT,
+
     NODE_IDENTIFIER,
 
     NODE_INT_LITERAL,
@@ -32,12 +36,13 @@ typedef struct ASTNode
 
 } ASTNode;
 
+extern ASTNode *root;
+
 ASTNode *create_node(NodeType type, char *value);
 
 ASTNode *append_node(ASTNode *list, ASTNode *node);
 
 void print_ast(ASTNode *node, int level);
 
-extern ASTNode *root;
 
 #endif

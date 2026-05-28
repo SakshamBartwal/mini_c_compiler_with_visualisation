@@ -64,6 +64,12 @@ void yyerror(const char *s);
 %type <node> unary_expression
 %type <node> postfix_expression
 %type <node> primary_expression
+%type <node> declaration
+%type <node> variable_list
+%type <node> initialized_declarator
+%type <node> declarator
+%type <node> expression_statement
+%type <node> statement
 
 %%
 
@@ -103,23 +109,68 @@ parameter:
 
 declaration:
       type_specifier variable_list ';'
-    ;
+      {
+          $$ = create_node(NODE_DECLARATION, "declaration");
 
+          $$->left = $2;
+      }
+    ;
+    
 variable_list:
       variable_list ',' declarator
+      {
+          append_node($1, $3);
+
+          $$ = $1;
+      }
+
     | variable_list ',' initialized_declarator
+      {
+          append_node($1, $3);
+
+          $$ = $1;
+      }
+
     | declarator
+      {
+          $$ = create_node(NODE_DECLARATOR_LIST, "list");
+
+          $$->left = $1;
+      }
+
     | initialized_declarator
+      {
+          $$ = create_node(NODE_DECLARATOR_LIST, "list");
+
+          $$->left = $1;
+      }
     ;
 
 initialized_declarator:
-      declarator '=' expression
+      declarator '=' assignment_expression
+      {
+          $$ = create_node(NODE_ASSIGNMENT, "=");
+
+          $$->left = $1;
+          $$->right = $3;
+      }
     ;
 
 declarator:
       IDENTIFIER
+      {
+          $$ = create_node(NODE_IDENTIFIER, $1);
+      }
     | '*' declarator
+      {
+          $$ = create_node(NODE_UNARY_OP, "*");
+
+          $$->left = $2;
+      }
     | declarator '[' INT_LITERAL ']'
+      {
+          $$ = $1;
+      }
     ;
 
 compound_statement:
@@ -133,16 +184,50 @@ statement_list:
 
 statement:
       declaration
+      {
+          $$ = $1;
+
+          root = $$;
+      }
+
     | expression_statement
+      {
+          $$ = $1;
+
+          root = $$;
+      }
+
     | selection_statement
+      {
+          $$ = NULL;
+      }
+
     | iteration_statement
+      {
+          $$ = NULL;
+      }
+
     | jump_statement
+      {
+          $$ = NULL;
+      }
+
     | compound_statement
+      {
+          $$ = NULL;
+      }
     ;
 
 expression_statement:
       expression ';'
+      {
+          $$ = $1;
+      }
+
     | ';'
+      {
+          $$ = NULL;
+      }
     ;
 
 selection_statement:
@@ -193,41 +278,56 @@ jump_statement:
 expression:
       expression ',' assignment_expression
       {
-          $$ = NULL;
+          $$ = $3;
       }
 
     | assignment_expression
       {
           $$ = $1;
 
-          root = $$;
+          
       }
     ;
 
 assignment_expression:
       unary_expression '=' assignment_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_ASSIGNMENT, "=");
+
+          $$->left = $1;
+          $$->right = $3;
       }
 
     | unary_expression ADD_ASSIGN assignment_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_ASSIGNMENT, "+=");
+
+          $$->left = $1;
+          $$->right = $3;
       }
 
     | unary_expression SUB_ASSIGN assignment_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_ASSIGNMENT, "-=");
+
+          $$->left = $1;
+          $$->right = $3;
       }
 
     | unary_expression MUL_ASSIGN assignment_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_ASSIGNMENT, "*=");
+
+          $$->left = $1;
+          $$->right = $3;
       }
 
     | unary_expression DIV_ASSIGN assignment_expression
       {
-          $$ = NULL;
+          $$ = create_node(NODE_ASSIGNMENT, "/=");
+
+          $$->left = $1;
+          $$->right = $3;
       }
 
     | conditional_expression

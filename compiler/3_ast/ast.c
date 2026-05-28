@@ -40,14 +40,17 @@ ASTNode *append_node(ASTNode *list, ASTNode *node)
     if(list == NULL)
         return node;
 
-    ASTNode *temp = list;
+    ASTNode *temp = list->left;
 
     while(temp->next)
+    {
         temp = temp->next;
+    }
 
     temp->next = node;
 
     return list;
+
 }
 
 void print_ast(ASTNode *node, int level)
@@ -72,6 +75,18 @@ void print_ast(ASTNode *node, int level)
 
         case NODE_UNARY_OP:
             printf("UNARY_OP");
+            break;
+
+        case NODE_DECLARATION:
+            printf("DECLARATION");
+            break;
+
+        case NODE_DECLARATOR_LIST:
+            printf("DECLARATOR_LIST");
+            break;
+
+        case NODE_ASSIGNMENT:
+            printf("ASSIGNMENT");
             break;
 
         case NODE_IDENTIFIER:
@@ -99,9 +114,18 @@ void print_ast(ASTNode *node, int level)
 
     printf("\n");
 
-    print_ast(node->left, level + 1);
-    print_ast(node->right, level + 1);
-    print_ast(node->third, level + 1);
+    if(node->left)
+        print_ast(node->left, level + 1);
 
-    print_ast(node->next, level);
+    if(node->right)
+        print_ast(node->right, level + 1);
+
+    if(node->third)
+        print_ast(node->third, level + 1);
+
+    if(node->next)
+        print_ast(node->next, level);
+
+
 }
+

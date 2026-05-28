@@ -1,3 +1,3 @@
 int main() {
-    *(&x);
+    int a, b = 5, c = x + y;
 }

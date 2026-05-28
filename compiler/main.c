@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
             printf("\n=========== AST ===========\n\n");
 
             print_ast(root, 0);
+         
         }
     }
     else {
