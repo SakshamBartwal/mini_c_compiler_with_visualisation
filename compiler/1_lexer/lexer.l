@@ -9,19 +9,17 @@
 int line_num = 1;
 extern char current_file[100];
 
-/* File-Switching Buffer Stack Configurations */
+// Keeps track of parent file buffers when handling nested imports (up to 10 deep)
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 int include_stack_ptr = 0;
 
-/* Save line numbers of parent files so line errors stay accurate */
+// Remembers line numbers and names of parent files so error reports stay accurate
 int line_num_stack[MAX_INCLUDE_DEPTH];
 char file_name_stack[MAX_INCLUDE_DEPTH][100];
 %}
 
 %x COMMENT
-/* Removed %option noyywrap to let our custom yywrap handle EOF stack switching */
-
 %x IMPORT_STATE
 
 DIGIT          [0-9]
@@ -35,56 +33,61 @@ STRING         \"([^\\\"]|\\.)*\"
 
 %%
 
- /*|=========================================================|
-   |                    PREPROCESSOR / IMPORTS               |
-   |=========================================================| */
+ /* =========================================================
+       PREPROCESSOR / IMPORTS
+    ========================================================= */
 
 "import"               { BEGIN(IMPORT_STATE); }
 
-<IMPORT_STATE>[ \t\r]* /* skip structural space */ ;
+<IMPORT_STATE>[ \t\r]* /* strip spaces inside the import statement */ ;
 
 <IMPORT_STATE>{STRING}[ \t\r]*";" {
-    /* Extract the file path string, accounting for the trailing semicolon matched above */
+    // Strip the opening quote from the filename
     char *filename = strdup(yytext + 1);
     
-    /* Find where the closing quote is to strip it cleanly */
+    // Find the closing quote and cut the string off there
     char *end_quote = strchr(filename, '"');
     if (end_quote) *end_quote = '\0';
 
+    // Prevent infinite import loops from crashing the compiler stack
     if (include_stack_ptr >= MAX_INCLUDE_DEPTH) {
         fprintf(stderr, "Lexer Error: Imports nested too deeply (Max Limit: %d)\n", MAX_INCLUDE_DEPTH);
         exit(1);
     }
 
+    // Try to open the imported sub-file
     FILE *inc = fopen(filename, "r");
     if (!inc) {
         fprintf(stderr, "%s: Lexer Error: Cannot open import file '%s' at line %d\n", current_file, filename, line_num);
         exit(1);
     }
 
-    /* Save the current state before switching */
+    // Save the current file's parsing state onto our tracker stack
     line_num_stack[include_stack_ptr] = line_num;
     strcpy(file_name_stack[include_stack_ptr], current_file);
     include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
     include_stack_ptr++;
 
-    /* Update current tracking metadata for the sub-file */
+    // Reset tracking indicators for the newly discovered file
     line_num = 1;
     strncpy(current_file, filename, sizeof(current_file) - 1);
 
-    /* Switch Flex's active character stream context to the sub-file */
+    // Swap Flex's active reading context to parse the child file
     yy_switch_to_buffer(yy_create_buffer(inc, YY_BUF_SIZE));
 
     free(filename);
-    BEGIN(INITIAL); /* Drop directly back to parsing code inside the sub-file */
+    BEGIN(INITIAL); // Return straight to parsing normal C code inside the sub-file
 }
 
-<IMPORT_STATE>.|\n      { fprintf(stderr, "%s: Lexer Error: Malformed import syntax at line %d\n", current_file, line_num); exit(1); }
+<IMPORT_STATE>.|\n { 
+    fprintf(stderr, "%s: Lexer Error: Malformed import syntax at line %d\n", current_file, line_num); 
+    exit(1); 
+}
 
 
- /*|=========================================================|
-   |                         KEYWORDS                        |
-   |=========================================================| */
+ /* =========================================================
+       KEYWORDS
+    ========================================================= */
 
 "int"                  { return INT; }
 "float"                { return FLOAT; }
@@ -117,11 +120,10 @@ STRING         \"([^\\\"]|\\.)*\"
 "sizeof"               { return SIZEOF; }
 
 
- /*|=========================================================|
-   |                  MULTI-CHAR OPERATORS                   |
-   |---------------------------------------------------------|
-   |           Must appear BEFORE single-char operators      |
-   |=========================================================| */
+ /* =========================================================
+       MULTI-CHARACTER OPERATORS
+       (Must sit above single-character operators to match correctly)
+    ========================================================= */
 
 "=="                   { return EQ; }
 "!="                   { return NEQ; }
@@ -141,9 +143,9 @@ STRING         \"([^\\\"]|\\.)*\"
 "/="                   { return DIV_ASSIGN; }
 
 
- /*|=========================================================|
-   |                         LITERALS                        |
-   |=========================================================|*/
+ /* =========================================================
+       LITERALS
+    ========================================================= */
 
 {FLOATNUM}             {
                             yylval.sval = strdup(yytext);
@@ -161,9 +163,9 @@ STRING         \"([^\\\"]|\\.)*\"
                         }
 
 
- /*|=========================================================|
-   |                        IDENTIFIERS                      |
-   |=========================================================|*/
+ /* =========================================================
+       IDENTIFIERS (Variable and Function names)
+    ========================================================= */
 
 {ID}                   {
                             yylval.sval = strdup(yytext);
@@ -171,9 +173,9 @@ STRING         \"([^\\\"]|\\.)*\"
                         }
 
 
- /*|=========================================================|
-   |                  SINGLE-CHAR OPERATORS                  |
-   |=========================================================|*/
+ /* =========================================================
+       SINGLE-CHARACTER OPERATORS
+    ========================================================= */
 
 "+"                    { return '+'; }
 "-"                    { return '-'; }
@@ -207,11 +209,11 @@ STRING         \"([^\\\"]|\\.)*\"
 "]"                    { return ']'; }
 
 
- /*|=========================================================|
-   |                         COMMENTS                        |
-   |=========================================================|*/
+ /* =========================================================
+       COMMENTS
+    ========================================================= */
 
-"//".* ;   /* Single-line comments */
+"//".* ;               // Skip single-line comments completely
 
 "/*"                    { BEGIN(COMMENT); }
 <COMMENT>"*/"           { BEGIN(INITIAL); }
@@ -219,44 +221,47 @@ STRING         \"([^\\\"]|\\.)*\"
 <COMMENT>.              ;   
 
 
- /*|=========================================================|
-   |                        WHITESPACE                       |
-   |=========================================================|*/
+ /* =========================================================
+       WHITESPACE
+    ========================================================= */
 
 [ \t\r]+               ;
 \n                     { line_num++; }
 
 
- /*|=========================================================|
-   |                      ERROR HANDLING                     |
-   |=========================================================|*/
+ /* =========================================================
+       ERROR HANDLING
+    ========================================================= */
 
-.                      {fprintf(
-                            stderr,
-                            "%s: Lexical Error: Unknown character '%s' at line %d\n",
-                            current_file,
-                            yytext,
-                            line_num
-                        );}
+.                      {
+                            fprintf(
+                                stderr,
+                                "%s: Lexical Error: Unknown character '%s' at line %d\n",
+                                current_file,
+                                yytext,
+                                line_num
+                            );
+                        }
 
 %%
 
-/* Custom EOF switch wrap controller */
+// Automatically called by Flex when it hits the End-Of-File marker
 int yywrap() {
+    // If our history stack is empty, we are completely done parsing the project
     if (include_stack_ptr <= 0) {
-        return 1; /* Stack is empty: truly terminate the lexer stream */
+        return 1;
     }
 
-    /* Clean up the current complete buffer stream */
+    // Safely clear out the completed file buffer from memory
     yy_delete_buffer(YY_CURRENT_BUFFER);
     include_stack_ptr--;
 
-    /* Restore parent metadata context logs */
+    // Pop the parent file details off our history tracker
     line_num = line_num_stack[include_stack_ptr];
     strcpy(current_file, file_name_stack[include_stack_ptr]);
 
-    /* Switch context back to the parent file buffer */
+    // Re-activate the parent file buffer to resume reading where we left off
     yy_switch_to_buffer(include_stack[include_stack_ptr]);
     
-    return 0; /* Tell Flex to keep parsing the popped file */
+    return 0; // Tells Flex to seamlessly keep reading from the parent file
 }

@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {"id": "0", "label": "Block_0"},
+    {"id": "1", "label": "Block_1"},
+    {"id": "2", "label": "Block_2"},
+    {"id": "3", "label": "Block_3"}
+  ],
+  "edges": [
+    {"from": "0", "to": "1", "type": "true/fallthrough"},
+    {"from": "1", "to": "2", "type": "true/fallthrough"},
+    {"from": "1", "to": "3", "type": "false/jump"},
+    {"from": "2", "to": "1", "type": "true/fallthrough"}
+  ]
+}

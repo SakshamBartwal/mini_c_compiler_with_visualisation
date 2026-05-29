@@ -2,12 +2,21 @@
 #define SEMANTIC_H
 
 #include "compiler/3_ast/ast.h"
-#include "symbol_table.h" /* Updated include */
+#include "symbol_table.h" 
 
-/* Entry point to analyze the complete Abstract Syntax Tree */
+
+
+/* ============================================================================
+   Engine Interface Modules
+   ============================================================================ */
+
+// The main entry point used by main.c to start processing the semantic analysis phase
 void analyze_semantics(ASTNode *root);
 
-/* Internal recursive tree walker */
+
+// The internal recursive worker that travels down the AST branches to verify variable scopes
 void semantic_walk(ASTNode *node, SymbolTable *current_scope);
+
+
 
 #endif

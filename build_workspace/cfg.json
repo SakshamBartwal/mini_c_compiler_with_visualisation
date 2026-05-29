@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {"id": "0", "label": "Block 0\nfunc main:\n  i = 0\n  sum = 0\n"},
+    {"id": "1", "label": "Block 1\nL0:\n  t0 = i < 10\n  if_false t0 goto L1\n"},
+    {"id": "2", "label": "Block 2\n  t1 = sum + i\n  sum = t1\n  t2 = i + 1\n  i = t2\n  goto L0\n"},
+    {"id": "3", "label": "Block 3\nL1:\n  return 0\n"}
+  ],
+  "edges": [
+    {"from": "0", "to": "1", "type": "true/fallthrough"},
+    {"from": "1", "to": "2", "type": "true/fallthrough"},
+    {"from": "1", "to": "3", "type": "false/jump"},
+    {"from": "2", "to": "1", "type": "true/fallthrough"}
+  ]
+}

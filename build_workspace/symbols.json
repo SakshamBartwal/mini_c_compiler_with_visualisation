@@ -1,0 +1,9 @@
+{
+  "Global Scope Layer": [
+    {"name": "main", "type": "void", "category": "variable"}
+  ],
+  "Local Scope (main)": [
+    {"name": "i", "type": "int", "category": "variable"},
+    {"name": "sum", "type": "int", "category": "variable"}
+  ]
+}

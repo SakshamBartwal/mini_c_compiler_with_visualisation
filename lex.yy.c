@@ -560,19 +560,17 @@ char *yytext;
 int line_num = 1;
 extern char current_file[100];
 
-/* File-Switching Buffer Stack Configurations */
+// Keeps track of parent file buffers when handling nested imports (up to 10 deep)
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 int include_stack_ptr = 0;
 
-/* Save line numbers of parent files so line errors stay accurate */
+// Remembers line numbers and names of parent files so error reports stay accurate
 int line_num_stack[MAX_INCLUDE_DEPTH];
 char file_name_stack[MAX_INCLUDE_DEPTH][100];
 #line 571 "lex.yy.c"
 
-/* Removed %option noyywrap to let our custom yywrap handle EOF stack switching */
-
-#line 575 "lex.yy.c"
+#line 573 "lex.yy.c"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -791,15 +789,15 @@ YY_DECL
 		}
 
 	{
-#line 36 "compiler/1_lexer/lexer.l"
+#line 34 "compiler/1_lexer/lexer.l"
 
 
-#line 39 "compiler/1_lexer/lexer.l"
- /*|=========================================================|
-   |                    PREPROCESSOR / IMPORTS               |
-   |=========================================================| */
+#line 37 "compiler/1_lexer/lexer.l"
+ /* =========================================================
+       PREPROCESSOR / IMPORTS
+    ========================================================= */
 
-#line 802 "lex.yy.c"
+#line 800 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -858,239 +856,243 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 43 "compiler/1_lexer/lexer.l"
+#line 41 "compiler/1_lexer/lexer.l"
 { BEGIN(IMPORT_STATE); }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 45 "compiler/1_lexer/lexer.l"
-/* skip structural space */ ;
+#line 43 "compiler/1_lexer/lexer.l"
+/* strip spaces inside the import statement */ ;
 	YY_BREAK
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 47 "compiler/1_lexer/lexer.l"
+#line 45 "compiler/1_lexer/lexer.l"
 {
-    /* Extract the file path string, accounting for the trailing semicolon matched above */
+    // Strip the opening quote from the filename
     char *filename = strdup(yytext + 1);
     
-    /* Find where the closing quote is to strip it cleanly */
+    // Find the closing quote and cut the string off there
     char *end_quote = strchr(filename, '"');
     if (end_quote) *end_quote = '\0';
 
+    // Prevent infinite import loops from crashing the compiler stack
     if (include_stack_ptr >= MAX_INCLUDE_DEPTH) {
         fprintf(stderr, "Lexer Error: Imports nested too deeply (Max Limit: %d)\n", MAX_INCLUDE_DEPTH);
         exit(1);
     }
 
+    // Try to open the imported sub-file
     FILE *inc = fopen(filename, "r");
     if (!inc) {
         fprintf(stderr, "%s: Lexer Error: Cannot open import file '%s' at line %d\n", current_file, filename, line_num);
         exit(1);
     }
 
-    /* Save the current state before switching */
+    // Save the current file's parsing state onto our tracker stack
     line_num_stack[include_stack_ptr] = line_num;
     strcpy(file_name_stack[include_stack_ptr], current_file);
     include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
     include_stack_ptr++;
 
-    /* Update current tracking metadata for the sub-file */
+    // Reset tracking indicators for the newly discovered file
     line_num = 1;
     strncpy(current_file, filename, sizeof(current_file) - 1);
 
-    /* Switch Flex's active character stream context to the sub-file */
+    // Swap Flex's active reading context to parse the child file
     yy_switch_to_buffer(yy_create_buffer(inc, YY_BUF_SIZE));
 
     free(filename);
-    BEGIN(INITIAL); /* Drop directly back to parsing code inside the sub-file */
+    BEGIN(INITIAL); // Return straight to parsing normal C code inside the sub-file
 }
 	YY_BREAK
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
 #line 83 "compiler/1_lexer/lexer.l"
-{ fprintf(stderr, "%s: Lexer Error: Malformed import syntax at line %d\n", current_file, line_num); exit(1); }
+{ 
+    fprintf(stderr, "%s: Lexer Error: Malformed import syntax at line %d\n", current_file, line_num); 
+    exit(1); 
+}
 	YY_BREAK
-/*|=========================================================|
-   |                         KEYWORDS                        |
-   |=========================================================| */
+/* =========================================================
+       KEYWORDS
+    ========================================================= */
 case 5:
 YY_RULE_SETUP
-#line 90 "compiler/1_lexer/lexer.l"
+#line 93 "compiler/1_lexer/lexer.l"
 { return INT; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 91 "compiler/1_lexer/lexer.l"
+#line 94 "compiler/1_lexer/lexer.l"
 { return FLOAT; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 92 "compiler/1_lexer/lexer.l"
+#line 95 "compiler/1_lexer/lexer.l"
 { return CHAR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 93 "compiler/1_lexer/lexer.l"
+#line 96 "compiler/1_lexer/lexer.l"
 { return VOID; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 95 "compiler/1_lexer/lexer.l"
+#line 98 "compiler/1_lexer/lexer.l"
 { return DOUBLE; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 97 "compiler/1_lexer/lexer.l"
+#line 100 "compiler/1_lexer/lexer.l"
 { return LONG; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 98 "compiler/1_lexer/lexer.l"
+#line 101 "compiler/1_lexer/lexer.l"
 { return SHORT; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 99 "compiler/1_lexer/lexer.l"
+#line 102 "compiler/1_lexer/lexer.l"
 { return SIGNED; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 100 "compiler/1_lexer/lexer.l"
+#line 103 "compiler/1_lexer/lexer.l"
 { return UNSIGNED; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 102 "compiler/1_lexer/lexer.l"
+#line 105 "compiler/1_lexer/lexer.l"
 { return IF; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 103 "compiler/1_lexer/lexer.l"
+#line 106 "compiler/1_lexer/lexer.l"
 { return ELSE; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 105 "compiler/1_lexer/lexer.l"
+#line 108 "compiler/1_lexer/lexer.l"
 { return WHILE; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 106 "compiler/1_lexer/lexer.l"
+#line 109 "compiler/1_lexer/lexer.l"
 { return FOR; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 107 "compiler/1_lexer/lexer.l"
+#line 110 "compiler/1_lexer/lexer.l"
 { return DO; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 109 "compiler/1_lexer/lexer.l"
+#line 112 "compiler/1_lexer/lexer.l"
 { return RETURN; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 111 "compiler/1_lexer/lexer.l"
+#line 114 "compiler/1_lexer/lexer.l"
 { return SWITCH; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 112 "compiler/1_lexer/lexer.l"
+#line 115 "compiler/1_lexer/lexer.l"
 { return CASE; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 113 "compiler/1_lexer/lexer.l"
+#line 116 "compiler/1_lexer/lexer.l"
 { return DEFAULT; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 115 "compiler/1_lexer/lexer.l"
+#line 118 "compiler/1_lexer/lexer.l"
 { return BREAK; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 116 "compiler/1_lexer/lexer.l"
+#line 119 "compiler/1_lexer/lexer.l"
 { return CONTINUE; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 118 "compiler/1_lexer/lexer.l"
+#line 121 "compiler/1_lexer/lexer.l"
 { return SIZEOF; }
 	YY_BREAK
-/*|=========================================================|
-   |                  MULTI-CHAR OPERATORS                   |
-   |---------------------------------------------------------|
-   |           Must appear BEFORE single-char operators      |
-   |=========================================================| */
+/* =========================================================
+       MULTI-CHARACTER OPERATORS
+       (Must sit above single-character operators to match correctly)
+    ========================================================= */
 case 26:
 YY_RULE_SETUP
-#line 127 "compiler/1_lexer/lexer.l"
+#line 129 "compiler/1_lexer/lexer.l"
 { return EQ; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 128 "compiler/1_lexer/lexer.l"
+#line 130 "compiler/1_lexer/lexer.l"
 { return NEQ; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 130 "compiler/1_lexer/lexer.l"
+#line 132 "compiler/1_lexer/lexer.l"
 { return LE; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 131 "compiler/1_lexer/lexer.l"
+#line 133 "compiler/1_lexer/lexer.l"
 { return GE; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 133 "compiler/1_lexer/lexer.l"
+#line 135 "compiler/1_lexer/lexer.l"
 { return AND; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 134 "compiler/1_lexer/lexer.l"
+#line 136 "compiler/1_lexer/lexer.l"
 { return OR; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 136 "compiler/1_lexer/lexer.l"
+#line 138 "compiler/1_lexer/lexer.l"
 { return INC; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 137 "compiler/1_lexer/lexer.l"
+#line 139 "compiler/1_lexer/lexer.l"
 { return DEC; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 139 "compiler/1_lexer/lexer.l"
+#line 141 "compiler/1_lexer/lexer.l"
 { return ADD_ASSIGN; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 140 "compiler/1_lexer/lexer.l"
+#line 142 "compiler/1_lexer/lexer.l"
 { return SUB_ASSIGN; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 141 "compiler/1_lexer/lexer.l"
+#line 143 "compiler/1_lexer/lexer.l"
 { return MUL_ASSIGN; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 142 "compiler/1_lexer/lexer.l"
+#line 144 "compiler/1_lexer/lexer.l"
 { return DIV_ASSIGN; }
 	YY_BREAK
-/*|=========================================================|
-   |                         LITERALS                        |
-   |=========================================================|*/
+/* =========================================================
+       LITERALS
+    ========================================================= */
 case 38:
 YY_RULE_SETUP
-#line 149 "compiler/1_lexer/lexer.l"
+#line 151 "compiler/1_lexer/lexer.l"
 {
                             yylval.sval = strdup(yytext);
                             return FLOAT_LITERAL;
@@ -1098,7 +1100,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 154 "compiler/1_lexer/lexer.l"
+#line 156 "compiler/1_lexer/lexer.l"
 {
                             yylval.sval = strdup(yytext);
                             return INT_LITERAL;
@@ -1107,189 +1109,191 @@ YY_RULE_SETUP
 case 40:
 /* rule 40 can match eol */
 YY_RULE_SETUP
-#line 159 "compiler/1_lexer/lexer.l"
+#line 161 "compiler/1_lexer/lexer.l"
 {
                             yylval.sval = strdup(yytext);
                             return STRING_LITERAL;
                         }
 	YY_BREAK
-/*|=========================================================|
-   |                        IDENTIFIERS                      |
-   |=========================================================|*/
+/* =========================================================
+       IDENTIFIERS (Variable and Function names)
+    ========================================================= */
 case 41:
 YY_RULE_SETUP
-#line 169 "compiler/1_lexer/lexer.l"
+#line 171 "compiler/1_lexer/lexer.l"
 {
                             yylval.sval = strdup(yytext);
                             return IDENTIFIER;
                         }
 	YY_BREAK
-/*|=========================================================|
-   |                  SINGLE-CHAR OPERATORS                  |
-   |=========================================================|*/
+/* =========================================================
+       SINGLE-CHARACTER OPERATORS
+    ========================================================= */
 case 42:
 YY_RULE_SETUP
-#line 179 "compiler/1_lexer/lexer.l"
+#line 181 "compiler/1_lexer/lexer.l"
 { return '+'; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 180 "compiler/1_lexer/lexer.l"
+#line 182 "compiler/1_lexer/lexer.l"
 { return '-'; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 182 "compiler/1_lexer/lexer.l"
+#line 184 "compiler/1_lexer/lexer.l"
 { return '*'; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 183 "compiler/1_lexer/lexer.l"
+#line 185 "compiler/1_lexer/lexer.l"
 { return '/'; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 184 "compiler/1_lexer/lexer.l"
+#line 186 "compiler/1_lexer/lexer.l"
 { return '%'; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 186 "compiler/1_lexer/lexer.l"
+#line 188 "compiler/1_lexer/lexer.l"
 { return '='; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 188 "compiler/1_lexer/lexer.l"
+#line 190 "compiler/1_lexer/lexer.l"
 { return '<'; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 189 "compiler/1_lexer/lexer.l"
+#line 191 "compiler/1_lexer/lexer.l"
 { return '>'; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 191 "compiler/1_lexer/lexer.l"
+#line 193 "compiler/1_lexer/lexer.l"
 { return '!'; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 193 "compiler/1_lexer/lexer.l"
+#line 195 "compiler/1_lexer/lexer.l"
 { return '&'; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 195 "compiler/1_lexer/lexer.l"
+#line 197 "compiler/1_lexer/lexer.l"
 { return '?'; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 196 "compiler/1_lexer/lexer.l"
+#line 198 "compiler/1_lexer/lexer.l"
 { return ':'; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 198 "compiler/1_lexer/lexer.l"
+#line 200 "compiler/1_lexer/lexer.l"
 { return ';'; }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 199 "compiler/1_lexer/lexer.l"
+#line 201 "compiler/1_lexer/lexer.l"
 { return ','; }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 201 "compiler/1_lexer/lexer.l"
+#line 203 "compiler/1_lexer/lexer.l"
 { return '('; }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 202 "compiler/1_lexer/lexer.l"
+#line 204 "compiler/1_lexer/lexer.l"
 { return ')'; }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 204 "compiler/1_lexer/lexer.l"
+#line 206 "compiler/1_lexer/lexer.l"
 { return '{'; }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 205 "compiler/1_lexer/lexer.l"
+#line 207 "compiler/1_lexer/lexer.l"
 { return '}'; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 207 "compiler/1_lexer/lexer.l"
+#line 209 "compiler/1_lexer/lexer.l"
 { return '['; }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 208 "compiler/1_lexer/lexer.l"
+#line 210 "compiler/1_lexer/lexer.l"
 { return ']'; }
 	YY_BREAK
-/*|=========================================================|
-   |                         COMMENTS                        |
-   |=========================================================|*/
+/* =========================================================
+       COMMENTS
+    ========================================================= */
 case 62:
 YY_RULE_SETUP
-#line 215 "compiler/1_lexer/lexer.l"
-;   /* Single-line comments */
+#line 217 "compiler/1_lexer/lexer.l"
+;               // Skip single-line comments completely
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 217 "compiler/1_lexer/lexer.l"
+#line 219 "compiler/1_lexer/lexer.l"
 { BEGIN(COMMENT); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 218 "compiler/1_lexer/lexer.l"
+#line 220 "compiler/1_lexer/lexer.l"
 { BEGIN(INITIAL); }
 	YY_BREAK
 case 65:
 /* rule 65 can match eol */
 YY_RULE_SETUP
-#line 219 "compiler/1_lexer/lexer.l"
+#line 221 "compiler/1_lexer/lexer.l"
 { line_num++; }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 220 "compiler/1_lexer/lexer.l"
+#line 222 "compiler/1_lexer/lexer.l"
 ;   
 	YY_BREAK
-/*|=========================================================|
-   |                        WHITESPACE                       |
-   |=========================================================|*/
+/* =========================================================
+       WHITESPACE
+    ========================================================= */
 case 67:
 YY_RULE_SETUP
-#line 227 "compiler/1_lexer/lexer.l"
+#line 229 "compiler/1_lexer/lexer.l"
 ;
 	YY_BREAK
 case 68:
 /* rule 68 can match eol */
 YY_RULE_SETUP
-#line 228 "compiler/1_lexer/lexer.l"
+#line 230 "compiler/1_lexer/lexer.l"
 { line_num++; }
 	YY_BREAK
-/*|=========================================================|
-   |                      ERROR HANDLING                     |
-   |=========================================================|*/
+/* =========================================================
+       ERROR HANDLING
+    ========================================================= */
 case 69:
 YY_RULE_SETUP
-#line 235 "compiler/1_lexer/lexer.l"
-{fprintf(
-                            stderr,
-                            "%s: Lexical Error: Unknown character '%s' at line %d\n",
-                            current_file,
-                            yytext,
-                            line_num
-                        );}
+#line 237 "compiler/1_lexer/lexer.l"
+{
+                            fprintf(
+                                stderr,
+                                "%s: Lexical Error: Unknown character '%s' at line %d\n",
+                                current_file,
+                                yytext,
+                                line_num
+                            );
+                        }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 243 "compiler/1_lexer/lexer.l"
+#line 247 "compiler/1_lexer/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1292 "lex.yy.c"
+#line 1296 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):
 case YY_STATE_EOF(IMPORT_STATE):
@@ -2296,25 +2300,26 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 243 "compiler/1_lexer/lexer.l"
+#line 247 "compiler/1_lexer/lexer.l"
 
 
-/* Custom EOF switch wrap controller */
+// Automatically called by Flex when it hits the End-Of-File marker
 int yywrap() {
+    // If our history stack is empty, we are completely done parsing the project
     if (include_stack_ptr <= 0) {
-        return 1; /* Stack is empty: truly terminate the lexer stream */
+        return 1;
     }
 
-    /* Clean up the current complete buffer stream */
+    // Safely clear out the completed file buffer from memory
     yy_delete_buffer(YY_CURRENT_BUFFER);
     include_stack_ptr--;
 
-    /* Restore parent metadata context logs */
+    // Pop the parent file details off our history tracker
     line_num = line_num_stack[include_stack_ptr];
     strcpy(current_file, file_name_stack[include_stack_ptr]);
 
-    /* Switch context back to the parent file buffer */
+    // Re-activate the parent file buffer to resume reading where we left off
     yy_switch_to_buffer(include_stack[include_stack_ptr]);
     
-    return 0; /* Tell Flex to keep parsing the popped file */
+    return 0; // Tells Flex to seamlessly keep reading from the parent file
 }

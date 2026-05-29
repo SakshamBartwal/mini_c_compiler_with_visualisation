@@ -1,0 +1,5 @@
+[
+  {"name": "main", "type": "void", "scope": "Global", "line": 0},
+  {"name": "i", "type": "int", "scope": "Function", "line": 0},
+  {"name": "sum", "type": "int", "scope": "Function", "line": 0}
+]

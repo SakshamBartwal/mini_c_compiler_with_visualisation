@@ -17,6 +17,7 @@ void yyerror(const char *s);
     ASTNode *node;
 }
 
+/* --- Token Declarations --- */
 %token IMPORT
 %token INT FLOAT CHAR VOID DOUBLE LONG SHORT SIGNED UNSIGNED
 %token IF ELSE
@@ -35,13 +36,14 @@ void yyerror(const char *s);
 %token <sval> STRING_LITERAL
 %token <sval> IDENTIFIER
 
+/* --- Operator Precedence Rules --- */
 %right '='
 %right UMINUS
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 
-/* Map ONLY your implemented non-terminals to ASTNode pointers */
+/* --- Grammar Rule Non-Terminal Mappings --- */
 %type <node> expression assignment_expression conditional_expression
 %type <node> logical_or_expression logical_and_expression equality_expression
 %type <node> relational_expression additive_expression multiplicative_expression
@@ -56,24 +58,27 @@ void yyerror(const char *s);
 %type <node> for_init_statement
 %type <node> optional_expression
 %type <node> import_statement
-%type <node> function_declaration    /* FIXED: Bison Type Mapping Established */
-%type <node> parameter_list          /* FIXED: Bison Type Mapping Established */
-%type <node> parameter               /* FIXED: Bison Type Mapping Established */
-%type <node> argument_list_opt       /* <-- ADD THIS LINE */
+%type <node> function_declaration    
+%type <node> parameter_list          
+%type <node> parameter               
+%type <node> argument_list_opt       
 %type <node> argument_list
 
 %%
 
-/* --- Global Program Backbone Chains --- */
+/* =========================================================
+       GLOBAL PROGRAM BACKBONE CHAINS
+   ========================================================= */
+
 program:
       program external_declaration
       {
           if ($1 == NULL) {
-              /* If everything before this was an import or empty declaration,
-                 this new node becomes the new root head of the program tree */
+              // If preceding blocks were just empty imports, this node becomes our root head
               $$ = $2;
               if ($2 != NULL) root = $2;
           } else {
+              // Otherwise, append this new top-level block to our global tree chain
               if ($2 != NULL) {
                   append_node($1, $2);
               }
@@ -87,13 +92,15 @@ program:
       }
     ;
 
+
 external_declaration:
       function_definition   { $$ = $1; }
     | function_declaration  { $$ = NULL; }
     | declaration           { $$ = $1; }
-    | import_statement      { $$ = NULL; } /* Clears memory footprint from tree */
+    | import_statement      { $$ = NULL; } 
     | compound_statement    { $$ = $1; }
     ;
+
 
 import_statement:
       IMPORT STRING_LITERAL ';'
@@ -102,16 +109,19 @@ import_statement:
       }
     ;
 
+
 function_definition:
       type_specifier declarator '(' parameter_list ')' compound_statement
       {
+          // Generate a function definition node using the identifier string
           $$ = create_node(NODE_FUNCTION_DEF, $2->value); 
           
-          /* Link parameters to the right child, and the body block to the left child */
+          // Map inputs/parameters to the right slot, and the code block body to the left slot
           $$->right = $4; 
           $$->left = $6; 
       }
     ;
+
 
 function_declaration:
       type_specifier declarator '(' parameter_list ')' ';'
@@ -119,6 +129,7 @@ function_declaration:
           $$ = NULL;
       }
     ;
+
 
 parameter_list:
       parameter_list ',' parameter
@@ -135,24 +146,31 @@ parameter_list:
       }
     ;
 
+
 parameter:
       type_specifier declarator
       {
-          /* Wrap parameter in a declaration node so the semantic walker catches it */
+          // Put the input variable inside a declaration box so semantic analysis catches it
           $$ = create_node(NODE_DECLARATION, "param");
           $$->left = $2;
       }
     ;
 
-/* --- Variable Declarations (Flat Sibling Chains) --- */
+
+/* =========================================================
+       VARIABLE DECLARATIONS (Flat Sibling Chains)
+   ========================================================= */
+
 declaration:
       type_specifier variable_list ';'
       {
+          // Bundle all discovered variables together under a standard layout box
           $$ = create_node(NODE_DECLARATION, "declaration");
-          $$->left = $2; // Points directly to the first variable node in the flat chain
+          $$->left = $2; 
       }
     ;
     
+
 variable_list:
       variable_list ',' declarator
       {
@@ -164,22 +182,25 @@ variable_list:
       }
     | declarator
       {
-          $$ = $1; // Passes raw leaf straight up (No intermediate list wrappers)
+          $$ = $1; 
       }
     | initialized_declarator
       {
-          $$ = $1; // Passes assignment sub-tree root straight up
+          $$ = $1; 
       }
     ;
+
 
 initialized_declarator:
       declarator '=' assignment_expression
       {
+          // Build an assignment operation branch for active declarations (e.g. int i = 0)
           $$ = create_node(NODE_ASSIGNMENT, "=");
           $$->left = $1;
           $$->right = $3;
       }
     ;
+
 
 declarator:
       IDENTIFIER
@@ -197,7 +218,11 @@ declarator:
       }
     ;
 
-/* --- Compound Blocks & Statement Sequencing --- */
+
+/* =========================================================
+       COMPOUND BLOCKS & STATEMENT SEQUENCING
+   ========================================================= */
+
 compound_statement:
       '{' '}'
       {
@@ -206,25 +231,23 @@ compound_statement:
     | '{' statement_list '}'
       {
           $$ = create_node(NODE_COMPOUND_STATEMENT, "compound_statement");
-          /* FIXED: $1 is '{', $2 is the actual statement_list node chain, $3 is '}' */
           $$->left = $2; 
       }
     ;
 
+
 statement_list:
       statement
       {
-          /* If the statement is an empty semicolon, pass NULL.
-             Otherwise, this statement becomes the head of the chain. */
           $$ = $1; 
       }
     | statement_list statement
       {
           if ($1 == NULL) {
-              /* If everything before was empty, this new statement 
-                 becomes the new head of the list */
+              // If preceding lines inside the block were completely empty, reset the head
               $$ = $2;
           } else {
+              // Glue statements together sequentially using horizontal .next sibling branches
               if ($2 != NULL) {
                   append_node($1, $2);
               }
@@ -232,6 +255,7 @@ statement_list:
           }
       }
     ;
+
 
 statement:
       declaration           { $$ = $1; }
@@ -242,37 +266,42 @@ statement:
     | compound_statement    { $$ = $1; }
     ;
 
+
 expression_statement:
       expression ';'        { $$ = $1; }
     | ';'                   { $$ = NULL; }
     ;
 
+
 selection_statement:
       IF '(' expression ')' statement %prec LOWER_THAN_ELSE
       {
           $$ = create_node(NODE_IF, "if");
-          $$->left = $3;   /* Condition expression */
-          $$->right = $5;  /* Body statement */
+          $$->left = $3;   // Store the raw condition logic
+          $$->right = $5;  // Store the true execution branch block
       }
     | IF '(' expression ')' statement ELSE statement
       {
           $$ = create_node(NODE_IF, "if_else");
-          $$->left = $3;   /* Condition expression */
-          $$->right = $5;  /* Then block statement */
-          $$->third = $7;  /* Else block statement */
+          $$->left = $3;   // Condition check
+          $$->right = $5;  // True path branch
+          $$->third = $7;  // False/Else path branch
       }
     | SWITCH '(' expression ')' '{' case_list '}' { $$ = NULL; }
     ;
+
 
 case_list:
       case_list case_statement
     | case_statement
     ;
 
+
 case_statement:
       CASE constant_expression ':' statement_list
     | DEFAULT ':' statement_list
     ;
+
 
 constant_expression:
       INT_LITERAL
@@ -280,38 +309,41 @@ constant_expression:
     | STRING_LITERAL
     ;
 
+
 iteration_statement:
       WHILE '(' expression ')' statement
       {
           $$ = create_node(NODE_WHILE, "while");
-          $$->left = $3;   /* Condition expression */
-          $$->right = $5;  /* Loop body statement */
+          $$->left = $3;   // Conditional loop boundaries
+          $$->right = $5;  // Loop execution context block
       }
     | DO statement WHILE '(' expression ')' ';' { $$ = NULL; }
     | FOR '(' for_init_statement expression_statement optional_expression ')' statement
       {
           $$ = create_node(NODE_FOR, "for");
-          $$->left = $3;   /* Initialization statement */
-          $$->right = $4;  /* Condition statement */
+          $$->left = $3;   // Loop starter setup code
+          $$->right = $4;  // Active loop safety checkpoint condition
           
-          /* Append the update expression step ($5) directly to the tail
-             of the loop body statement block ($7) using your flat append system */
+          // Inject the step update logic directly onto the tail end of the inner loop body
           if($5 != NULL) {
               append_node($7, $5);
           }
-          $$->third = $7;  /* Unified loop body root */
+          $$->third = $7;  
       }
     ;
+
 
 for_init_statement:
       declaration           { $$ = $1; }
     | expression_statement  { $$ = $1; }
     ;
 
+
 optional_expression:
       expression            { $$ = $1; }
-    |                       { $$ = NULL; } /* Handle empty increment case safely */
+    |                       { $$ = NULL; } 
     ;
+
 
 jump_statement:
       RETURN expression ';'
@@ -333,7 +365,11 @@ jump_statement:
       }
     ;
 
-/* --- Core Expressions & Math Operators --- */
+
+/* =========================================================
+       CORE EXPRESSIONS & EVALUATION OPERATORS
+   ========================================================= */
+
 expression:
       expression ',' assignment_expression
       {
@@ -344,6 +380,7 @@ expression:
           $$ = $1;
       }
     ;
+
 
 assignment_expression:
       unary_expression '=' assignment_expression
@@ -362,20 +399,24 @@ assignment_expression:
       }
     ;
 
+
 conditional_expression:
       logical_or_expression   { $$ = $1; }
     | logical_or_expression '?' expression ':' conditional_expression { $$ = NULL; }
     ;
+
 
 logical_or_expression:
       logical_or_expression OR logical_and_expression { $$ = NULL; }
     | logical_and_expression { $$ = $1; }
     ;
 
+
 logical_and_expression:
       logical_and_expression AND equality_expression { $$ = NULL; }
     | equality_expression { $$ = $1; }
     ;
+
 
 equality_expression:
       equality_expression EQ relational_expression
@@ -392,6 +433,7 @@ equality_expression:
       }
     | relational_expression { $$ = $1; }
     ;
+
 
 relational_expression:
       relational_expression '<' additive_expression
@@ -421,6 +463,7 @@ relational_expression:
     | additive_expression { $$ = $1; }
     ;
 
+
 additive_expression:
       additive_expression '+' multiplicative_expression
       {
@@ -439,6 +482,7 @@ additive_expression:
           $$ = $1;
       }
     ;
+
 
 multiplicative_expression:
       multiplicative_expression '*' unary_expression
@@ -464,6 +508,7 @@ multiplicative_expression:
           $$ = $1;
       }
     ;
+
 
 unary_expression:
       postfix_expression { $$ = $1; }
@@ -509,20 +554,20 @@ unary_expression:
       }
     ;
 
+
 postfix_expression:
       primary_expression { $$ = $1; }
     | postfix_expression '[' expression ']' { $$ = NULL; }
     | postfix_expression '(' argument_list_opt ')' 
       { 
-          /* Create an operational call node */
+          // Build an execution runtime function pointer tracking block
           $$ = create_node(NODE_BINARY_OP, "call"); 
-          $$->left = $1;   /* The function identifier name (e.g., compute_square) */
-          $$->right = $3;  /* The underlying argument expression chain root */
+          $$->left = $1;   // Function variable literal identifier token
+          $$->right = $3;  // Nested inside tracking parameters array chain block
       }
     | postfix_expression INC { $$ = NULL; }
     | postfix_expression DEC { $$ = NULL; }
     ;
-
 
 
 primary_expression:
@@ -533,10 +578,12 @@ primary_expression:
     | '(' expression ')' { $$ = $2; }
     ;
 
+
 argument_list_opt:
       argument_list { $$ = $1; }
     |               { $$ = NULL; }
     ;
+
 
 argument_list:
       argument_list ',' expression 
@@ -548,6 +595,7 @@ argument_list:
           $$ = $1; 
       }
     ;
+
 
 type_specifier:
       INT | FLOAT | CHAR | VOID | DOUBLE | LONG | SHORT | SIGNED | UNSIGNED
