@@ -1,14 +1,17 @@
 {
   "nodes": [
-    {"id": "0", "label": "Block 0\nfunc main:\n  i = 0\n  sum = 0\n"},
-    {"id": "1", "label": "Block 1\nL0:\n  t0 = i < 10\n  if_false t0 goto L1\n"},
-    {"id": "2", "label": "Block 2\n  t1 = sum + i\n  sum = t1\n  t2 = i + 1\n  i = t2\n  goto L0\n"},
-    {"id": "3", "label": "Block 3\nL1:\n  return 0\n"}
+    {"id": "0", "label": "Block 0\n  global_counter = 100\n"},
+    {"id": "1", "label": "Block 1\nfunc calculate_step:\n  step_multiplier = 2\n  t0 = current_val * step_multiplier\n  result = t0\n  return result\n"},
+    {"id": "2", "label": "Block 2\nfunc main:\n  i = 0\n  sum = 0\n  global_counter = 5\n"},
+    {"id": "3", "label": "Block 3\nL0:\n  t1 = i < global_counter\n  if_false t1 goto L1\n"},
+    {"id": "4", "label": "Block 4\n  t2 = calculate_step\n  loop_increment = t2\n  t3 = sum + loop_increment\n  sum = t3\n  t4 = i + 1\n  i = t4\n  goto L0\n"},
+    {"id": "5", "label": "Block 5\nL1:\n  return 0\n"}
   ],
   "edges": [
     {"from": "0", "to": "1", "type": "true/fallthrough"},
-    {"from": "1", "to": "2", "type": "true/fallthrough"},
-    {"from": "1", "to": "3", "type": "false/jump"},
-    {"from": "2", "to": "1", "type": "true/fallthrough"}
+    {"from": "2", "to": "3", "type": "true/fallthrough"},
+    {"from": "3", "to": "4", "type": "true/fallthrough"},
+    {"from": "3", "to": "5", "type": "false/jump"},
+    {"from": "4", "to": "3", "type": "true/fallthrough"}
   ]
 }

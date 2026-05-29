@@ -249,32 +249,38 @@ export default function App() {
             )}
 
 
-            {/* Active Registered Identifiers Scope Snapshot Tab */}
-            {activeTab === "symbols" && (
-              <div className="space-y-3 font-mono text-xs">
-                {compilation && compilation.symbol_table ? Object.entries(compilation.symbol_table).map(([scope, vars]) => (
-                  <div key={scope} className="border border-[#3c3c3c] rounded bg-[#1e1e1e] overflow-hidden">
-                    <div className="bg-[#2d2d2d] px-2 py-1 text-[#4ec9b0] font-bold">{scope}</div>
-                    <table className="w-full text-left">
+           {activeTab === "symbols" && (
+              <div className="space-y-4 font-mono text-xs">
+                {compilation && compilation.symbol_table ? Object.entries(compilation.symbol_table).map(([scopeKey, vars]) => (
+                  <div key={scopeKey} className="border border-[#3c3c3c] rounded bg-[#1e1e1e] overflow-hidden shadow-lg">
+                    <div className="bg-[#2d2d2d] px-3 py-1.5 text-[#4ec9b0] font-bold border-b border-[#3c3c3c]">
+                      {scopeKey}
+                    </div>
+                    
+                    <table className="w-full text-left table-auto">
                       <thead>
-                        <tr className="bg-[#252526] text-gray-400 border-b border-[#3c3c3c]">
-                          <th className="p-1">Name</th>
-                          <th className="p-1">Type</th>
-                          <th className="p-1">Kind</th>
+                        <tr className="bg-[#252526] text-gray-400 border-b border-[#3c3c3c] text-[11px] uppercase tracking-wider">
+                          <th className="p-2 pl-3">Name</th>
+                          <th className="p-2">Type</th>
+                          <th className="p-2">Scope Context</th>
+                          <th className="p-2">Category</th>
+                          
                         </tr>
                       </thead>
                       <tbody>
                         {vars.map((v, i) => (
-                          <tr key={i} className="border-b border-[#2d2d2d] hover:bg-[#252526]">
-                            <td className="p-1 text-[#9cdcfe] font-bold">{v.name}</td>
-                            <td className="p-1 text-[#569cd6]">{v.type}</td>
-                            <td className="p-1 text-gray-400">{v.category}</td>
+                          <tr key={i} className="border-b border-[#2d2d2d] hover:bg-[#252526] transition-colors">
+                            <td className="p-2 pl-3 text-[#9cdcfe] font-bold">{v.name}</td>
+                            <td className="p-2 text-[#569cd6]">{v.type}</td>
+                            <td className="p-2 text-[#ce9178]">{v.scope}</td>
+                            <td className="p-2 text-[#4ec9b0]">{v.category}</td>
+                            
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                )) : <div className="text-center text-gray-500">No active symbol layouts mapped.</div>}
+                )) : <div className="text-center text-gray-500 py-6">No active symbol layouts mapped.</div>}
               </div>
             )}
 

@@ -15,7 +15,8 @@ void analyze_semantics(ASTNode *root);
 
 
 // The internal recursive worker that travels down the AST branches to verify variable scopes
-void semantic_walk(ASTNode *node, SymbolTable *current_scope);
+// FIXED: Added the 3rd tracking parameter to match semantic.c
+void semantic_walk(ASTNode *node, SymbolTable *current_scope, const char *active_func_context);
 
 
 

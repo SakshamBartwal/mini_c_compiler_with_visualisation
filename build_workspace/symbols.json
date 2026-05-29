@@ -1,9 +1,18 @@
 {
   "Global Scope Layer": [
-    {"name": "main", "type": "void", "category": "variable"}
+    {"name": "global_counter", "type": "int", "scope": "Global", "category": "variable"},
+    {"name": "calculate_step", "type": "int", "scope": "Global", "category": "function"},
+    {"name": "main", "type": "int", "scope": "Global", "category": "function"}
+  ],
+  "Local Scope (calculate_step)": [
+    {"name": "current_val", "type": "int", "scope": "calculate_step", "category": "parameter"},
+    {"name": "step_multiplier", "type": "int", "scope": "calculate_step", "category": "variable"},
+    {"name": "result", "type": "int", "scope": "calculate_step", "category": "variable"}
   ],
   "Local Scope (main)": [
-    {"name": "i", "type": "int", "category": "variable"},
-    {"name": "sum", "type": "int", "category": "variable"}
+    {"name": "i", "type": "int", "scope": "main", "category": "variable"},
+    {"name": "sum", "type": "int", "scope": "main", "category": "variable"},
+    {"name": "global_counter", "type": "int", "scope": "main", "category": "variable"},
+    {"name": "loop_increment", "type": "int", "scope": "main", "category": "variable"}
   ]
 }

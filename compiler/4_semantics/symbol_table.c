@@ -3,24 +3,19 @@
 #include <string.h>
 #include "symbol_table.h"
 
-
-
 // Flat array structure designed to preserve a snapshot of variables for React Flow
 typedef struct {
     char name[50];
-    char type[50];
-    char scope[50];
-    int line;
+    char type[20];
+    char scope[50];     // Tracks function context ("Global", "main", etc.)
+    char category[20];  // Tracks role ("variable", "function", "parameter")
 } UISymbol;
 
 UISymbol ui_symbols[1000];
 int ui_symbol_count = 0;
 
-
-
 // Standard string hash utility to compute bucket placements
 unsigned int hash(const char *str) {
-
     unsigned int h = 5381;
     int c;
 
@@ -31,11 +26,8 @@ unsigned int hash(const char *str) {
     return h % 211;
 }
 
-
-
 // Generates a completely new scope layer mapping back to its parent context
 SymbolTable *create_scope(SymbolTable *parent, ScopeType type) {
-
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
     if (!table) {
@@ -54,17 +46,13 @@ SymbolTable *create_scope(SymbolTable *parent, ScopeType type) {
     return table;
 }
 
-
-
 // Walks through an active scope and completely frees up its bucket memory allocations
 SymbolTable *destroy_scope(SymbolTable *current) {
-
     if (!current) {
         return NULL;
     }
 
     SymbolTable *parent = current->outer_scope;
-
 
     for (int i = 0; i < 211; i++) {
         Symbol *sym = current->buckets[i];
@@ -85,18 +73,14 @@ SymbolTable *destroy_scope(SymbolTable *current) {
     return parent;
 }
 
-
-
 // Registers a newly declared tracking variable token inside our current active scope
-int insert_symbol(SymbolTable *table, const char *name, const char *type, int line) {
-
+int insert_symbol(SymbolTable *table, const char *name, const char *type, const char *category, const char *active_func_name) {
     if (!table) {
         return 0;
     }
 
     unsigned int h = hash(name);
     Symbol *curr = table->buckets[h];
-
 
     // Check if the exact same variable name already exists inside this local layer
     while (curr != NULL) {
@@ -106,44 +90,52 @@ int insert_symbol(SymbolTable *table, const char *name, const char *type, int li
         curr = curr->next;
     }
 
-
     // Configure and prepend the fresh identifier token to the hash slot bucket chain
     Symbol *new_sym = malloc(sizeof(Symbol));
     new_sym->name = strdup(name);
     new_sym->data_type = strdup(type);
-    new_sym->line_declared = line;
     new_sym->next = table->buckets[h];
     table->buckets[h] = new_sym;
 
-
     // Log a permanent snapshot for the UI before local blocks are completely erased
     if (ui_symbol_count < 1000) {
-        strncpy(ui_symbols[ui_symbol_count].name, name, 49);
-        strncpy(ui_symbols[ui_symbol_count].type, type, 49);
         
+        // Safe string copies bounded strictly to avoid buffer overflows
+        strncpy(ui_symbols[ui_symbol_count].name, name, sizeof(ui_symbols[ui_symbol_count].name) - 1);
+        ui_symbols[ui_symbol_count].name[sizeof(ui_symbols[ui_symbol_count].name) - 1] = '\0';
+        
+        strncpy(ui_symbols[ui_symbol_count].type, type, sizeof(ui_symbols[ui_symbol_count].type) - 1);
+        ui_symbols[ui_symbol_count].type[sizeof(ui_symbols[ui_symbol_count].type) - 1] = '\0';
+        
+        // FIXED: Store the exact category explicitly passed down by the semantic analyzer
+        strncpy(ui_symbols[ui_symbol_count].category, category, sizeof(ui_symbols[ui_symbol_count].category) - 1);
+        ui_symbols[ui_symbol_count].category[sizeof(ui_symbols[ui_symbol_count].category) - 1] = '\0';
+        
+        // Dynamically assign scope classifications instead of hardcoding "Function"/"Block"
         if (table->type == SCOPE_GLOBAL) {
             strcpy(ui_symbols[ui_symbol_count].scope, "Global");
-        } else if (table->type == SCOPE_FUNCTION) {
-            strcpy(ui_symbols[ui_symbol_count].scope, "Function");
         } else {
-            strcpy(ui_symbols[ui_symbol_count].scope, "Block");
+            // Assign the name of the active surrounding function executing this block
+            if (active_func_name && strlen(active_func_name) > 0) {
+                strncpy(ui_symbols[ui_symbol_count].scope, active_func_name, sizeof(ui_symbols[ui_symbol_count].scope) - 1);
+            } else {
+                strcpy(ui_symbols[ui_symbol_count].scope, "Unknown_Local");
+            }
         }
         
-        ui_symbols[ui_symbol_count].line = line;
+        // THE SAFE FIX: Clean, single-indexed bounds checking calculated perfectly by the compiler
+        ui_symbols[ui_symbol_count].scope[sizeof(ui_symbols[ui_symbol_count].scope) - 1] = '\0';
+        
         ui_symbol_count++;
     }
 
     return 1; 
 }
 
-
-
 // Searches backward up through nesting hierarchies until a matching token is found
 Symbol *lookup_symbol(SymbolTable *table, const char *name) {
-
     unsigned int h = hash(name);
     SymbolTable *current_scope = table;
-
 
     while (current_scope != NULL) {
         Symbol *sym = current_scope->buckets[h];
@@ -162,52 +154,79 @@ Symbol *lookup_symbol(SymbolTable *table, const char *name) {
     return NULL; 
 }
 
-
-// Exports our compiled variable snapshots straight into a structured JSON layout for the UI
+// Formats our compiled variable snapshots with all 5 telemetry properties into a JSON map
 void export_symbols_to_json(const char *filename) {
-
     FILE *fp = fopen(filename, "w");
-
+    
     if (!fp) {
         return;
     }
 
-
     fprintf(fp, "{\n  \"Global Scope Layer\": [\n");
     int first_global = 1;
 
-    // Pass 1: Write out all Global variables sequentially
+    // ------------------------------------------------------------------------
+    // PASS 1: Serialize Global components with all tracking attributes
+    // ------------------------------------------------------------------------
     for (int i = 0; i < ui_symbol_count; i++) {
         if (strcmp(ui_symbols[i].scope, "Global") == 0) {
+            
             if (!first_global) {
                 fprintf(fp, ",\n");
             }
-            fprintf(fp, "    {\"name\": \"%s\", \"type\": \"%s\", \"category\": \"variable\"}", 
-                    ui_symbols[i].name, ui_symbols[i].type);
+            
+            fprintf(fp, "    {\"name\": \"%s\", \"type\": \"%s\", \"scope\": \"%s\", \"category\": \"%s\"}", 
+                    ui_symbols[i].name, ui_symbols[i].type, ui_symbols[i].scope, ui_symbols[i].category);
+                    
             first_global = 0;
         }
     }
+    
+    fprintf(fp, "\n  ]");
 
-
-    fprintf(fp, "\n  ],\n  \"Local Scope (main)\": [\n");
-    int first_local = 1;
-
-    // Pass 2: Write out all local function block variables sequentially
+    // ------------------------------------------------------------------------
+    // PASS 2: Isolate individual local functions and serialize complete profiles
+    // ------------------------------------------------------------------------
     for (int i = 0; i < ui_symbol_count; i++) {
+        
         if (strcmp(ui_symbols[i].scope, "Global") != 0) {
-            if (!first_local) {
-                fprintf(fp, ",\n");
+            
+            int already_processed = 0;
+            for (int j = 0; j < i; j++) {
+                if (strcmp(ui_symbols[j].scope, ui_symbols[i].scope) == 0) {
+                    already_processed = 1;
+                    break;
+                }
             }
-            fprintf(fp, "    {\"name\": \"%s\", \"type\": \"%s\", \"category\": \"variable\"}", 
-                    ui_symbols[i].name, ui_symbols[i].type);
-            first_local = 0;
+            
+            if (already_processed) {
+                continue;
+            }
+
+            fprintf(fp, ",\n  \"Local Scope (%s)\": [\n", ui_symbols[i].scope);
+            int first_local = 1;
+
+            // Collect and serialize all elements belonging to this active function track
+            for (int k = 0; k < ui_symbol_count; k++) {
+                if (strcmp(ui_symbols[k].scope, ui_symbols[i].scope) == 0) {
+                    
+                    if (!first_local) {
+                        fprintf(fp, ",\n");
+                    }
+                    
+                    fprintf(fp, "    {\"name\": \"%s\", \"type\": \"%s\", \"scope\": \"%s\", \"category\": \"%s\"}", 
+                            ui_symbols[k].name, ui_symbols[k].type, ui_symbols[k].scope, ui_symbols[k].category);
+                            
+                    first_local = 0;
+                }
+            }
+            
+            fprintf(fp, "\n  ]");
         }
     }
 
-    fprintf(fp, "\n  ]\n}\n");
-
+    fprintf(fp, "\n}\n");
     fclose(fp);
     
-    // Clear the tracker token index count back down to 0 for subsequent builds
     ui_symbol_count = 0; 
 }
