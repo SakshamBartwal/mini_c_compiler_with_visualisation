@@ -55,6 +55,12 @@ void yyerror(const char *s);
 %type <node> jump_statement
 %type <node> for_init_statement
 %type <node> optional_expression
+%type <node> import_statement
+%type <node> function_declaration    /* FIXED: Bison Type Mapping Established */
+%type <node> parameter_list          /* FIXED: Bison Type Mapping Established */
+%type <node> parameter               /* FIXED: Bison Type Mapping Established */
+%type <node> argument_list_opt       /* <-- ADD THIS LINE */
+%type <node> argument_list
 
 %%
 
@@ -62,13 +68,22 @@ void yyerror(const char *s);
 program:
       program external_declaration
       {
-          $$ = append_node($1, $2);
-          root = $$;
+          if ($1 == NULL) {
+              /* If everything before this was an import or empty declaration,
+                 this new node becomes the new root head of the program tree */
+              $$ = $2;
+              if ($2 != NULL) root = $2;
+          } else {
+              if ($2 != NULL) {
+                  append_node($1, $2);
+              }
+              $$ = $1;
+          }
       }
     | external_declaration
       {
           $$ = $1;
-          if($1 != NULL) root = $1;
+          if ($1 != NULL) root = $1;
       }
     ;
 
@@ -76,12 +91,15 @@ external_declaration:
       function_definition   { $$ = $1; }
     | function_declaration  { $$ = NULL; }
     | declaration           { $$ = $1; }
-    | import_statement      { $$ = NULL; }
+    | import_statement      { $$ = NULL; } /* Clears memory footprint from tree */
     | compound_statement    { $$ = $1; }
     ;
 
 import_statement:
       IMPORT STRING_LITERAL ';'
+      { 
+          $$ = NULL; 
+      }
     ;
 
 function_definition:
@@ -89,22 +107,41 @@ function_definition:
       {
           $$ = create_node(NODE_FUNCTION_DEF, $2->value); 
           
+          /* Link parameters to the right child, and the body block to the left child */
+          $$->right = $4; 
           $$->left = $6; 
       }
     ;
 
 function_declaration:
       type_specifier declarator '(' parameter_list ')' ';'
+      {
+          $$ = NULL;
+      }
     ;
 
 parameter_list:
       parameter_list ',' parameter
+      {
+          $$ = append_node($1, $3);
+      }
     | parameter
+      {
+          $$ = $1;
+      }
     |
+      {
+          $$ = NULL;
+      }
     ;
 
 parameter:
       type_specifier declarator
+      {
+          /* Wrap parameter in a declaration node so the semantic walker catches it */
+          $$ = create_node(NODE_DECLARATION, "param");
+          $$->left = $2;
+      }
     ;
 
 /* --- Variable Declarations (Flat Sibling Chains) --- */
@@ -475,10 +512,18 @@ unary_expression:
 postfix_expression:
       primary_expression { $$ = $1; }
     | postfix_expression '[' expression ']' { $$ = NULL; }
-    | postfix_expression '(' argument_list_opt ')' { $$ = NULL; }
+    | postfix_expression '(' argument_list_opt ')' 
+      { 
+          /* Create an operational call node */
+          $$ = create_node(NODE_BINARY_OP, "call"); 
+          $$->left = $1;   /* The function identifier name (e.g., compute_square) */
+          $$->right = $3;  /* The underlying argument expression chain root */
+      }
     | postfix_expression INC { $$ = NULL; }
     | postfix_expression DEC { $$ = NULL; }
     ;
+
+
 
 primary_expression:
       IDENTIFIER         { $$ = create_node(NODE_IDENTIFIER, $1); }
@@ -489,13 +534,19 @@ primary_expression:
     ;
 
 argument_list_opt:
-      argument_list
-    |
+      argument_list { $$ = $1; }
+    |               { $$ = NULL; }
     ;
 
 argument_list:
-      argument_list ',' expression
-    | expression
+      argument_list ',' expression 
+      { 
+          $$ = append_node($1, $3); 
+      }
+    | expression                  
+      { 
+          $$ = $1; 
+      }
     ;
 
 type_specifier:
